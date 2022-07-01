@@ -169,7 +169,9 @@ _Check_return_ __CRT_INLINE float __CRTDECL ldexpf(_In_ float x, _In_ int y) { r
 _Check_return_ __CRT_INLINE long double __CRTDECL tanl(_In_ long double x) { return (tan((double)x)); }
 #endif
 
-#if defined(__ia64__) || defined(_M_IA64) || \
+#if defined(_CRTBLD)
+_Check_return_ float __cdecl fabsf(_In_ float x);
+#elif defined(__ia64__) || defined(_M_IA64) || \
     defined(__arm__) || defined(_M_ARM)  || \
     defined(__arm64__) || defined(_M_ARM64)
 _Check_return_ _CRT_JIT_INTRINSIC _CRTIMP float __cdecl fabsf(_In_ float x);
@@ -202,9 +204,9 @@ _Check_return_ float __cdecl tanhf(_In_ float x);
 
 #if defined(_MSC_VER)
 /* Make sure intrinsics don't get in our way */
-#if defined(_M_AMD64) || defined(_M_ARM)
+#if defined(_M_AMD64) || defined(_M_ARM) || defined(_M_ARM64)
 #pragma function(acosf,asinf,atanf,atan2f,ceilf,cosf,coshf,expf,floorf,fmodf,logf,log10f,powf,sinf,sinhf,sqrtf,tanf,tanhf)
-#endif /* defined(_M_AMD64) || defined(_M_ARM) */
+#endif /* defined(_M_AMD64) || defined(_M_ARM) || defined(_M_ARM64) */
 #if (_MSC_VER >= 1920)
 #pragma function(_hypotf)
 #endif

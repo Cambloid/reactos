@@ -492,16 +492,18 @@ co_IntSetScrollInfo(PWND Window, INT nBar, LPCSCROLLINFO lpsi, BOOL bRedraw)
    BOOL bChangeParams = FALSE; /* Don't show/hide scrollbar if params don't change */
    UINT MaxPage;
    int MaxPos;
-   /* [0] = HORZ, [1] = VERT */
-   static PWND PrevHwnd[2] = { 0 };
-   static DWORD PrevPos[2] = { 0 };
+   /* [0] = SB_HORZ, [1] = SB_VERT, [2] = SB_CTL */
+   static PWND PrevHwnd[3] = { 0 };
+   static DWORD PrevPos[3] = { 0 };
+   static DWORD PrevMax[3] = { 0 };
+   static INT PrevAction[3] = { 0 };
 
    ASSERT_REFS_CO(Window);
 
-   if(!SBID_IS_VALID(nBar))
+   if(!SBID_IS_VALID(nBar)) /* Assures nBar is 0, 1, or 2 */
    {
       EngSetLastError(ERROR_INVALID_PARAMETER);
-      ERR("Trying to set scrollinfo for unknown scrollbar type %d", nBar);
+      ERR("Trying to set scrollinfo for unknown scrollbar type %d\n", nBar);
       return FALSE;
    }
 
@@ -525,6 +527,11 @@ co_IntSetScrollInfo(PWND Window, INT nBar, LPCSCROLLINFO lpsi, BOOL bRedraw)
    psbi = IntGetScrollbarInfoFromWindow(Window, nBar);
    Info = IntGetScrollInfoFromWindow(Window, nBar);
    pSBData = IntGetSBData(Window, nBar);
+
+   if (lpsi->fMask & SIF_THEMED && !(Info->fMask & SIF_THEMED))
+   {
+       Info->fMask |= SIF_THEMED;
+   }
 
    /* Set the page size */
    if (lpsi->fMask & SIF_PAGE)
@@ -637,6 +644,16 @@ co_IntSetScrollInfo(PWND Window, INT nBar, LPCSCROLLINFO lpsi, BOOL bRedraw)
    }
 
 //done:
+   if ((Window != PrevHwnd[nBar]) || (action != PrevAction[nBar]))
+   {
+      if ((action == SA_SSI_SHOW) && (PrevAction[nBar] == SA_SSI_HIDE))
+      {
+         co_UserShowScrollBar(Window, nBar, TRUE, TRUE);
+      }
+   }
+   if ((action != PrevAction[nBar]) && action != 0)
+      PrevAction[nBar] = action;
+
    if ( action & SA_SSI_HIDE )
    {
       co_UserShowScrollBar(Window, nBar, FALSE, FALSE);
@@ -648,7 +665,7 @@ co_IntSetScrollInfo(PWND Window, INT nBar, LPCSCROLLINFO lpsi, BOOL bRedraw)
             return lpsi->fMask & SIF_PREVIOUSPOS ? OldPos : pSBData->pos; /* SetWindowPos() already did the painting */
       if (bRedraw)
       {
-         if (!(lpsi->fMask & SIF_THEMED)) /* Not Using Themes */
+         if (!(Info->fMask & SIF_THEMED)) /* Not Using Themes */
          {
             TRACE("Not using themes.\n");
             if (action & SA_SSI_REPAINT_ARROWS)
@@ -690,12 +707,14 @@ co_IntSetScrollInfo(PWND Window, INT nBar, LPCSCROLLINFO lpsi, BOOL bRedraw)
                }
             }
             CurrentPos = lpsi->fMask & SIF_PREVIOUSPOS ? OldPos : pSBData->pos;
-            /* Check for changes to Window or CurrentPos */
-            if ((Window != PrevHwnd[nBar]) || (CurrentPos != PrevPos[nBar]))
+            /* Check for changes to Window or CurrentPos or lpsi->nMax */
+            if ((Window != PrevHwnd[nBar]) || (CurrentPos != PrevPos[nBar]) ||
+               (lpsi->nMax != PrevMax[nBar]))
             {
                 co_UserRedrawWindow(Window, &UpdateRect, 0, RDW_INVALIDATE | RDW_FRAME);
                 PrevHwnd[nBar] = Window;
                 PrevPos[nBar] = CurrentPos;
+                PrevMax[nBar] = lpsi->nMax;
             }
          }
       } // FIXME: Arrows
@@ -1390,7 +1409,7 @@ NtUserEnableScrollBar(
    if(wSBflags != SB_BOTH && !SBID_IS_VALID(wSBflags))
    {
       EngSetLastError(ERROR_INVALID_PARAMETER);
-      ERR("Trying to set scrollinfo for unknown scrollbar type %u", wSBflags);
+      ERR("Trying to set scrollinfo for unknown scrollbar type %u\n", wSBflags);
       RETURN(FALSE);
    }
 

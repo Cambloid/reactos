@@ -32,11 +32,7 @@ list(APPEND CRT_STDLIB_SOURCE
     stdlib/wmakpath_s.c
 )
 
-if(USE_CLANG_CL)
-    # clang-cl is missing pragma function support
-    # https://bugs.llvm.org/show_bug.cgi?id=35116
-    set_property(SOURCE stdlib/rot.c APPEND_STRING PROPERTY COMPILE_FLAGS " /fallback")
-
+if(MSVC AND CMAKE_C_COMPILER_ID STREQUAL "Clang")
     if(ARCH STREQUAL "i386")
         list(APPEND CRT_STDLIB_ASM_SOURCE
             stdlib/clang-alias.s

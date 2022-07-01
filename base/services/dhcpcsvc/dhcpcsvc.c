@@ -51,7 +51,7 @@ DhcpCApiInitialize(LPDWORD Version)
     }
 
     /* Change the pipe into message mode */
-    PipeMode = PIPE_READMODE_MESSAGE; 
+    PipeMode = PIPE_READMODE_MESSAGE;
     if (!SetNamedPipeHandleState(PipeHandle, &PipeMode, NULL, NULL))
     {
         /* Mode change failed */
@@ -343,7 +343,7 @@ DhcpRosGetAdapterInfo(DWORD AdapterIndex,
 static VOID
 UpdateServiceStatus(DWORD dwState)
 {
-    ServiceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+    ServiceStatus.dwServiceType = SERVICE_WIN32_SHARE_PROCESS;
     ServiceStatus.dwCurrentState = dwState;
 
     if (dwState == SERVICE_RUNNING)

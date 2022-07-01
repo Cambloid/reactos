@@ -48,6 +48,7 @@ list(APPEND FREELDR_BOOTLIB_SOURCE
     lib/mm/heap.c)
 
 list(APPEND FREELDR_NTLDR_SOURCE
+    ${REACTOS_SOURCE_DIR}/ntoskrnl/config/cmboot.c
     ntldr/conversion.c
     ntldr/registry.c
     ntldr/winldr.c
@@ -73,7 +74,7 @@ list(APPEND FREELDR_BOOTMGR_SOURCE
     options.c
     oslist.c
     ui/directui.c
-    ui/gui.c
+    # ui/gui.c
     ui/minitui.c
     ui/noui.c
     ui/tui.c
@@ -210,7 +211,7 @@ add_library(freeldr_common
     ${FREELDR_NTLDR_SOURCE}
     ${FREELDR_BOOTMGR_SOURCE})
 
-if(USE_CLANG_CL)
+if(MSVC AND CMAKE_C_COMPILER_ID STREQUAL "Clang")
     # We need to reduce the binary size
     target_compile_options(freeldr_common PRIVATE "/Os")
 endif()
@@ -218,7 +219,7 @@ if(NOT MSVC AND ARCH STREQUAL "i386" AND SARCH STREQUAL "xbox")
   # Prevent a warning when doing a memcmp with address 0
   set_source_files_properties(arch/i386/xbox/xboxmem.c PROPERTIES COMPILE_FLAGS "-Wno-nonnull")
 endif()
-if(ARCH STREQUAL "amd64" AND NOT MSVC)
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
     # Prevent using SSE (not support in freeldr)
     target_compile_options(freeldr_common PUBLIC -mno-sse)
 endif()
@@ -266,7 +267,7 @@ set_target_properties(freeldr_pe
 
 if(MSVC)
     if(ARCH STREQUAL "arm")
-        add_target_link_flags(freeldr_pe "/ignore:4078 /ignore:4254 /DRIVER")
+        target_link_options(freeldr_pe PRIVATE /ignore:4078 /ignore:4254 /DRIVER)
     else()
         target_link_options(freeldr_pe PRIVATE /ignore:4078 /ignore:4254 /DYNAMICBASE:NO /FIXED /FILEALIGN:512 /ALIGN:512)
         add_linker_script(freeldr_pe freeldr_i386.msvc.lds)
@@ -292,7 +293,7 @@ if(ARCH STREQUAL "i386")
     target_link_libraries(freeldr_pe mini_hal)
 endif()
 
-target_link_libraries(freeldr_pe freeldr_common cportlib cmlib rtl libcntpr)
+target_link_libraries(freeldr_pe freeldr_common cportlib cmlib blrtl libcntpr)
 
 # dynamic analysis switches
 if(STACK_PROTECTOR)
@@ -301,7 +302,7 @@ endif()
 
 if(RUNTIME_CHECKS)
     target_link_libraries(freeldr_pe runtmchk)
-    add_target_link_flags(freeldr_pe "/MERGE:.rtc=.text")
+    target_link_options(freeldr_pe PRIVATE "/MERGE:.rtc=.text")
 endif()
 
 add_dependencies(freeldr_pe asm)

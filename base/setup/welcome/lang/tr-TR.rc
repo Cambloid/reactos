@@ -1,6 +1,6 @@
-/* TRANSLATOR: 
-2013-2014 Erdem Ersoy (eersoy93) (erdemersoy [at] erdemersoy [dot] net), 
-2018 Ercan Ersoy (ercanersoy) (ercanersoy [at] ercanersoy [dot] net) 
+/* TRANSLATOR:
+2013-2014 Erdem Ersoy (eersoy93) (erdemersoy [at] erdemersoy [dot] net),
+2018 Ercan Ersoy (ercanersoy) (ercanersoy [at] ercanersoy [dot] net)
 2021 Süleyman Poyraz (zaryob [dot] dev [at] gmail [dot] com)
 */
 
@@ -22,7 +22,7 @@ END
 /* Topic buttons */
 STRINGTABLE
 BEGIN
-    IDS_TOPIC_BUTTON0 "&ReactOS'u Kur"
+    IDS_TOPIC_BUTTON0 "&ReactOS Kur"
     IDS_TOPIC_BUTTON1 "&Bu CD'ye göz atın"
     IDS_TOPIC_BUTTON2 "&Çıkış"
 END
@@ -30,7 +30,7 @@ END
 /* Topic titles */
 STRINGTABLE
 BEGIN
-    IDS_TOPIC_TITLE0 "ReactOS'u Kur"
+    IDS_TOPIC_TITLE0 "ReactOS Kur"
     IDS_TOPIC_TITLE1 "Bu CD'ye göz atın"
     IDS_TOPIC_TITLE2 "Çıkış"
 END

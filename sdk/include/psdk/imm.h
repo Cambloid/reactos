@@ -209,9 +209,6 @@ typedef struct tagCANDIDATEINFO {
     DWORD               dwPrivateOffset;
 } CANDIDATEINFO, *LPCANDIDATEINFO;
 
-#define IMMGWL_IMC                      0
-#define IMMGWL_PRIVATE                  (sizeof(LONG))
-
 /* IME Property bits */
 #define IME_PROP_END_UNLOAD             0x0001
 #define IME_PROP_KBD_CHAR_FIRST         0x0002
@@ -236,6 +233,10 @@ typedef struct tagCANDIDATEINFO {
 #define NI_SETCANDIDATE_PAGESTART       0x0016
 #define NI_SETCANDIDATE_PAGESIZE        0x0017
 #define NI_IMEMENUSELECTED              0x0018
+
+/* dwSystemInfoFlags bits */
+#define IME_SYSINFO_WINLOGON            0x0001
+#define IME_SYSINFO_WOW16               0x0002
 
 BOOL  WINAPI ImmUnlockIMC(HIMC);
 DWORD WINAPI ImmGetIMCLockCount(HIMC);
@@ -576,11 +577,10 @@ DWORD WINAPI ImeGetImeMenuItems(HIMC, DWORD, DWORD, LPIMEMENUITEMINFOW, LPIMEMEN
 #define IME_REGWORD_STYLE_USER_FIRST    0x80000000
 #define IME_REGWORD_STYLE_USER_LAST     0xFFFFFFFF
 
-
 /* dwFlags for ImmAssociateContextEx */
-#define IACE_CHILDREN			0x0001
-#define IACE_DEFAULT			0x0010
-#define IACE_IGNORENOCONTEXT		0x0020
+#define IACE_CHILDREN           0x0001
+#define IACE_DEFAULT            0x0010
+#define IACE_IGNORENOCONTEXT    0x0020
 
 /* dwFlags for ImmGetImeMenuItems */
 #define IGIMIF_RIGHTMENU		0x0001
@@ -627,9 +627,12 @@ BOOL WINAPI ImmConfigureIMEW(_In_ HKL, _In_ HWND, _In_ DWORD, _In_ LPVOID);
 #define ImmConfigureIME WINELIB_NAME_AW(ImmConfigureIME)
 
 HIMC WINAPI ImmCreateContext(void);
+BOOL WINAPI ImmSetActiveContext(HWND hwnd, HIMC hIMC, BOOL fFlag);
 BOOL WINAPI ImmDestroyContext(_In_ HIMC hIMC);
 BOOL WINAPI ImmDisableIME(_In_ DWORD idThread);
 BOOL WINAPI ImmEnumInputContext(_In_ DWORD, _In_ IMCENUMPROC, _In_ LPARAM);
+BOOL WINAPI ImmLoadIME(HKL hKL);
+BOOL WINAPI CtfImmIsTextFrameServiceDisabled(VOID);
 
 UINT
 WINAPI
@@ -884,9 +887,9 @@ WINAPI
 ImmSetCompositionStringA(
   _In_ HIMC,
   _In_ DWORD dwIndex,
-  _In_reads_bytes_opt_(dwCompLen) LPCVOID lpComp,
+  _Inout_updates_bytes_opt_(dwCompLen) LPVOID lpComp,
   _In_ DWORD dwCompLen,
-  _In_reads_bytes_opt_(dwReadLen) LPCVOID lpRead,
+  _Inout_updates_bytes_opt_(dwReadLen) LPVOID lpRead,
   _In_ DWORD dwReadLen);
 
 BOOL
@@ -894,9 +897,9 @@ WINAPI
 ImmSetCompositionStringW(
   _In_ HIMC,
   _In_ DWORD dwIndex,
-  _In_reads_bytes_opt_(dwCompLen) LPCVOID lpComp,
+  _Inout_updates_bytes_opt_(dwCompLen) LPVOID lpComp,
   _In_ DWORD dwCompLen,
-  _In_reads_bytes_opt_(dwReadLen) LPCVOID lpRead,
+  _Inout_updates_bytes_opt_(dwReadLen) LPVOID lpRead,
   _In_ DWORD dwReadLen);
 
 #define ImmSetCompositionString WINELIB_NAME_AW(ImmSetCompositionString)

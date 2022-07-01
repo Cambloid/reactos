@@ -10,6 +10,7 @@ list(APPEND SOURCE
     load_notifications.c
     locale.c
     NtAcceptConnectPort.c
+    NtAdjustGroupsToken.c
     NtAdjustPrivilegesToken.c
     NtAllocateVirtualMemory.c
     NtApphelpCacheControl.c
@@ -21,6 +22,7 @@ list(APPEND SOURCE
     NtDeleteKey.c
     NtDuplicateObject.c
     NtDuplicateToken.c
+    NtFilterToken.c
     NtFreeVirtualMemory.c
     NtImpersonateAnonymousToken.c
     NtLoadUnloadKey.c
@@ -33,6 +35,7 @@ list(APPEND SOURCE
     NtQueryInformationFile.c
     NtQueryInformationProcess.c
     NtQueryInformationThread.c
+    NtQueryInformationToken.c
     NtQueryKey.c
     NtQuerySystemEnvironmentValue.c
     NtQuerySystemInformation.c
@@ -43,6 +46,7 @@ list(APPEND SOURCE
     NtSetInformationFile.c
     NtSetInformationProcess.c
     NtSetInformationThread.c
+    NtSetInformationToken.c
     NtSetValueKey.c
     NtSetVolumeInformationFile.c
     NtUnloadDriver.c
@@ -107,6 +111,11 @@ add_executable(ntdll_apitest
     ${PCH_SKIP_SOURCE}
     testdata.rc
     ${CMAKE_CURRENT_BINARY_DIR}/ntdll_apitest.def)
+
+set_target_properties(ntdll_apitest
+    PROPERTIES
+    ENABLE_EXPORTS TRUE
+    DEFINE_SYMBOL "")
 
 target_link_libraries(ntdll_apitest wine uuid ${PSEH_LIB})
 set_module_type(ntdll_apitest win32cui)

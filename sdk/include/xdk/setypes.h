@@ -147,6 +147,19 @@ typedef struct _SE_IMPERSONATION_STATE {
 #define SEF_MACL_VALID_FLAGS (SEF_MACL_NO_WRITE_UP | SEF_MACL_NO_READ_UP | SEF_MACL_NO_EXECUTE_UP)
 
 $endif (_WDMDDK_ || _WINNT_)
+
+$if (_WINNT_)
+
+/* Privilege token filtering flags */
+#define DISABLE_MAX_PRIVILEGE 0x1
+#define SANDBOX_INERT         0x2
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+#define LUA_TOKEN             0x4
+#define WRITE_RESTRICTED      0x8
+#endif
+
+$endif (_WINNT_)
+
 $if (_WDMDDK_)
 
 typedef enum _SECURITY_OPERATION_CODE {
@@ -751,6 +764,24 @@ typedef struct _ACCESS_DENIED_ACE {
   ACCESS_MASK Mask;
   $ULONG SidStart;
 } ACCESS_DENIED_ACE, *PACCESS_DENIED_ACE;
+
+typedef struct _ACCESS_ALLOWED_OBJECT_ACE {
+  ACE_HEADER Header;
+  ACCESS_MASK Mask;
+  $ULONG Flags;
+  GUID ObjectType;
+  GUID InheritedObjectType;
+  $ULONG SidStart;
+} ACCESS_ALLOWED_OBJECT_ACE, *PACCESS_ALLOWED_OBJECT_ACE;
+
+typedef struct _ACCESS_DENIED_OBJECT_ACE {
+  ACE_HEADER  Header;
+  ACCESS_MASK Mask;
+  $ULONG Flags;
+  GUID ObjectType;
+  GUID InheritedObjectType;
+  $ULONG SidStart;
+} ACCESS_DENIED_OBJECT_ACE, *PACCESS_DENIED_OBJECT_ACE;
 
 typedef struct _SYSTEM_AUDIT_ACE {
   ACE_HEADER Header;

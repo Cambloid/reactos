@@ -195,6 +195,15 @@ typedef struct tagIMC
     HWND           hImeWnd;
 } IMC, *PIMC;
 
+#ifndef _WIN64
+C_ASSERT(offsetof(IMC, head.h) == 0x0);
+C_ASSERT(offsetof(IMC, head.cLockObj) == 0x4);
+C_ASSERT(offsetof(IMC, head.pti) == 0x8);
+C_ASSERT(offsetof(IMC, pImcNext) == 0x14);
+C_ASSERT(offsetof(IMC, dwClientImcData) == 0x18);
+C_ASSERT(offsetof(IMC, hImeWnd) == 0x1c);
+#endif
+
 typedef struct _PROCDESKHEAD
 {
     HEAD;
@@ -575,7 +584,7 @@ typedef struct _SBINFOEX
     SCROLLINFO ScrollInfo;
 } SBINFOEX, *PSBINFOEX;
 
-/* State Flags !Not Implemented! */
+/* State Flags !Not ALL Implemented! */
 #define WNDS_HASMENU                 0X00000001
 #define WNDS_HASVERTICALSCROOLLBAR   0X00000002
 #define WNDS_HASHORIZONTALSCROLLBAR  0X00000004
@@ -611,7 +620,7 @@ typedef struct _SBINFOEX
 
 #define WNDSACTIVEFRAME              0x00000006
 
-/* State2 Flags !Not Implemented! */
+/* State2 Flags !Not ALL Implemented! */
 #define WNDS2_WMPAINTSENT               0X00000001
 #define WNDS2_ENDPAINTINVALIDATE        0X00000002
 #define WNDS2_STARTPAINT                0X00000004
@@ -1186,6 +1195,7 @@ typedef struct tagIMEINFOEX
 typedef enum IMEINFOEXCLASS
 {
     ImeInfoExKeyboardLayout,
+    ImeInfoExKeyboardLayoutTFS,
     ImeInfoExImeWindow,
     ImeInfoExImeFileName
 } IMEINFOEXCLASS;
@@ -1199,7 +1209,7 @@ typedef struct tagIMEUI
     HWND hwndIMC;
     HKL hKL;
     HWND hwndUI;
-    INT nCntInIMEProc;
+    LONG nCntInIMEProc;
     struct {
         UINT fShowStatus:1;
         UINT fActivate:1;
@@ -1214,7 +1224,7 @@ typedef struct tagIMEUI
 /* Window Extra data container. */
 typedef struct _IMEWND
 {
-    WND;
+    WND wnd;
     PIMEUI pimeui;
 } IMEWND, *PIMEWND;
 
@@ -1290,37 +1300,38 @@ C_ASSERT(sizeof(IMEDPI) == 0xa8);
 /* unconfirmed */
 typedef struct tagCLIENTIMC
 {
-    HIMC hImc;
+    HANDLE hInputContext;   /* LocalAlloc'ed LHND */
     LONG cLockObj;
     DWORD dwFlags;
-    DWORD unknown;
+    DWORD dwCompatFlags;
     RTL_CRITICAL_SECTION cs;
-    DWORD unknown2;
+    UINT uCodePage;
     HKL hKL;
     BOOL bUnknown4;
 } CLIENTIMC, *PCLIENTIMC;
 
 #ifndef _WIN64
-C_ASSERT(offsetof(CLIENTIMC, hImc) == 0x0);
+C_ASSERT(offsetof(CLIENTIMC, hInputContext) == 0x0);
 C_ASSERT(offsetof(CLIENTIMC, cLockObj) == 0x4);
 C_ASSERT(offsetof(CLIENTIMC, dwFlags) == 0x8);
+C_ASSERT(offsetof(CLIENTIMC, dwCompatFlags) == 0xc);
 C_ASSERT(offsetof(CLIENTIMC, cs) == 0x10);
+C_ASSERT(offsetof(CLIENTIMC, uCodePage) == 0x28);
 C_ASSERT(offsetof(CLIENTIMC, hKL) == 0x2c);
 C_ASSERT(sizeof(CLIENTIMC) == 0x34);
 #endif
 
 /* flags for CLIENTIMC */
 #define CLIENTIMC_WIDE 0x1
-#define CLIENTIMC_UNKNOWN1 0x40
+#define CLIENTIMC_UNKNOWN5 0x2
+#define CLIENTIMC_UNKNOWN4 0x20
+#define CLIENTIMC_DESTROY 0x40
 #define CLIENTIMC_UNKNOWN3 0x80
 #define CLIENTIMC_UNKNOWN2 0x100
 
 DWORD
 NTAPI
-NtUserAssociateInputContext(
-    DWORD dwUnknown1,
-    DWORD dwUnknown2,
-    DWORD dwUnknown3);
+NtUserAssociateInputContext(HWND hWnd, HIMC hIMC, DWORD dwFlags);
 
 NTSTATUS
 NTAPI
@@ -1348,7 +1359,7 @@ NtUserCtxDisplayIOCtl(
     DWORD dwUnknown1,
     DWORD dwUnknown2,
     DWORD dwUnknown3);
-    
+
 DWORD
 APIENTRY
 NtUserDbgWin32HeapFail(
@@ -1550,9 +1561,9 @@ NtUserBuildHwndList(
     HWND hwndParent,
     BOOLEAN bChildren,
     ULONG dwThreadId,
-    ULONG lParam,
-    HWND *pWnd,
-    ULONG *pBufSize);
+    ULONG cHwnd,
+    HWND *phwndList,
+    ULONG *pcHwndNeeded);
 
 NTSTATUS
 NTAPI
@@ -1716,7 +1727,7 @@ enum SimpleCallRoutines
     HWNDLOCK_ROUTINE_SETSYSMENU,
     HWNDLOCK_ROUTINE_UPDATECKIENTRECT,
     HWNDLOCK_ROUTINE_UPDATEWINDOW,
-    X_ROUTINE_IMESHOWSTATUSCHANGE,
+    TWOPARAM_ROUTINE_IMESHOWSTATUSCHANGE,
     TWOPARAM_ROUTINE_ENABLEWINDOW,
     TWOPARAM_ROUTINE_REDRAWTITLE,
     TWOPARAM_ROUTINE_SHOWOWNEDPOPUPS,
@@ -1844,8 +1855,8 @@ NtUserCheckWindowThreadDesktop(
 DWORD
 NTAPI
 NtUserCheckImeHotKey(
-    DWORD dwUnknown1,
-    LPARAM dwUnknown2);
+    UINT uVirtualKey,
+    LPARAM lParam);
 
 HWND NTAPI
 NtUserChildWindowFromPointEx(
@@ -1937,7 +1948,7 @@ NtUserCreateDesktop(
 
 HIMC
 NTAPI
-NtUserCreateInputContext(PCLIENTIMC pClientImc);
+NtUserCreateInputContext(ULONG_PTR dwClientImcData);
 
 NTSTATUS
 NTAPI
@@ -2038,10 +2049,10 @@ NTAPI
 NtUserDestroyWindow(
     HWND Wnd);
 
-DWORD
+BOOL
 NTAPI
 NtUserDisableThreadIme(
-    DWORD dwUnknown1);
+    DWORD dwThreadID);
 
 LRESULT
 NTAPI
@@ -2129,7 +2140,7 @@ BOOL
 NTAPI
 NtUserEndDeferWindowPosEx(
     HDWP WinPosInfo,
-    DWORD Unknown1);
+    BOOL bAsync);
 
 BOOL
 NTAPI
@@ -2386,11 +2397,12 @@ NtUserGetIconSize(
     LONG *plcx,
     LONG *plcy);
 
-BOOL NTAPI
-NtUserGetImeHotKey(IN DWORD dwHotKey,
-                   OUT LPUINT lpuModifiers,
-                   OUT LPUINT lpuVKey,
-                   OUT LPHKL lphKL);
+BOOL
+NTAPI
+NtUserGetImeHotKey(DWORD dwHotKeyId,
+                   LPUINT lpuModifiers,
+                   LPUINT lpuVirtualKey,
+                   LPHKL lphKL);
 
 BOOL
 NTAPI
@@ -2549,20 +2561,27 @@ NtUserGetThreadDesktop(
 
 enum ThreadStateRoutines
 {
-    THREADSTATE_GETTHREADINFO,
-    THREADSTATE_INSENDMESSAGE,
-    THREADSTATE_FOCUSWINDOW,
+    THREADSTATE_FOCUSWINDOW = 0,
     THREADSTATE_ACTIVEWINDOW,
     THREADSTATE_CAPTUREWINDOW,
-    THREADSTATE_PROGMANWINDOW,
-    THREADSTATE_TASKMANWINDOW,
-    THREADSTATE_GETMESSAGETIME,
+    THREADSTATE_DEFAULTIMEWINDOW,
+    THREADSTATE_DEFAULTINPUTCONTEXT,
     THREADSTATE_GETINPUTSTATE,
-    THREADSTATE_UPTIMELASTREAD,
-    THREADSTATE_FOREGROUNDTHREAD,
     THREADSTATE_GETCURSOR,
+    THREADSTATE_CHANGEBITS,
+    THREADSTATE_UPTIMELASTREAD,
     THREADSTATE_GETMESSAGEEXTRAINFO,
-    THREADSTATE_UNKNOWN13
+    THREADSTATE_INSENDMESSAGE,
+    THREADSTATE_GETMESSAGETIME,
+    THREADSTATE_FOREGROUNDTHREAD,
+    THREADSTATE_IMECOMPATFLAGS,
+    THREADSTATE_OLDKEYBOARDLAYOUT,
+    THREADSTATE_ISWINLOGON,
+    THREADSTATE_ISWINLOGON2,
+    THREADSTATE_CHECKCONIME,
+    THREADSTATE_GETTHREADINFO,
+    THREADSTATE_PROGMANWINDOW, /* FIXME: Delete this HACK */
+    THREADSTATE_TASKMANWINDOW, /* FIXME: Delete this HACK */
 };
 
 DWORD_PTR
@@ -2771,10 +2790,7 @@ NtUserMoveWindow(
 
 DWORD
 NTAPI
-NtUserNotifyIMEStatus(
-    HWND hwnd,
-    HIMC hIMC,
-    DWORD dwConversion);
+NtUserNotifyIMEStatus(HWND hwnd, BOOL fOpen, DWORD dwConversion);
 
 BOOL
 NTAPI
@@ -2830,7 +2846,7 @@ NtUserPaintMenuBar(
     HDC hDC,
     ULONG left,    // x,
     ULONG right,   // width, // Scale the edge thickness, offset?
-    ULONG top,     // y, 
+    ULONG top,     // y,
     BOOL bActive); // DWORD Flags); DC_ACTIVE or WS_ACTIVECAPTION, by checking WNDS_ACTIVEFRAME and foreground.
 
 BOOL
@@ -2880,11 +2896,11 @@ NtUserQueryInformationThread(
     OUT PVOID ThreadInformation,
     IN ULONG ThreadInformationLength);
 
-DWORD
+DWORD_PTR
 NTAPI
 NtUserQueryInputContext(
     HIMC hIMC,
-    DWORD dwUnknown2);
+    DWORD dwType);
 
 DWORD
 NTAPI
@@ -3077,11 +3093,11 @@ NTAPI
 NtUserSetActiveWindow(
     HWND Wnd);
 
-DWORD
+BOOL
 NTAPI
 NtUserSetAppImeLevel(
-    DWORD dwUnknown1,
-    DWORD dwUnknown2);
+    HWND hWnd,
+    DWORD dwLevel);
 
 HWND
 NTAPI
@@ -3166,7 +3182,7 @@ NTAPI
 NtUserSetDbgTag(
     DWORD Unknown0,
     DWORD Unknown1);
-    
+
 DWORD
 APIENTRY
 NtUserSetDbgTagCount(
@@ -3177,23 +3193,23 @@ NTAPI
 NtUserSetFocus(
     HWND hWnd);
 
-DWORD
+BOOL
 NTAPI
 NtUserSetImeHotKey(
-    DWORD Unknown0,
-    DWORD Unknown1,
-    DWORD Unknown2,
-    DWORD Unknown3,
-    DWORD Unknown4);
+    DWORD dwHotKeyId,
+    UINT uModifiers,
+    UINT uVirtualKey,
+    HKL hKL,
+    DWORD dwAction);
 
-DWORD
+BOOL
 NTAPI
 NtUserSetImeInfoEx(
     PIMEINFOEX pImeInfoEx);
 
-DWORD
+BOOL
 NTAPI
-NtUserSetImeOwnerWindow(PIMEINFOEX pImeInfoEx, BOOL fFlag);
+NtUserSetImeOwnerWindow(HWND hImeWnd, HWND hwndFocus);
 
 DWORD
 NTAPI
@@ -3317,9 +3333,7 @@ NtUserSetSystemTimer(
 
 DWORD
 NTAPI
-NtUserSetThreadLayoutHandles(
-    DWORD dwUnknown1,
-    DWORD dwUnknown2);
+NtUserSetThreadLayoutHandles(HKL hNewKL, HKL hOldKL);
 
 UINT_PTR
 NTAPI
@@ -3538,12 +3552,12 @@ BOOL
 NTAPI
 NtUserUnregisterUserApiHook(VOID);
 
-DWORD
+BOOL
 NTAPI
 NtUserUpdateInputContext(
     HIMC hIMC,
-    DWORD Unknown1,
-    LPVOID pClientImc);
+    DWORD dwType,
+    DWORD_PTR dwValue);
 
 DWORD
 NTAPI

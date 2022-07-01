@@ -24,9 +24,9 @@ if(ARCH STREQUAL "i386")
         except/i386/chkstk_asm.s
         except/i386/chkstk_ms.s
         math/i386/alldiv_asm.s
-        math/i386/aulldiv_asm.s 
+        math/i386/aulldiv_asm.s
         )
-    if (GCC AND CLANG)
+    if (CMAKE_C_COMPILER_ID STREQUAL "Clang" AND NOT MSVC)
         list(APPEND MSVCRTEX_ASM_SOURCE
             math/i386/ceilf.S
             math/i386/floorf.S)
@@ -77,7 +77,7 @@ if(MSVC AND (ARCH STREQUAL "i386"))
 endif()
 
 
-if(GCC OR CLANG)
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
     target_compile_options(msvcrtex PRIVATE $<$<COMPILE_LANGUAGE:C>:-Wno-main>)
     if(LTCG)
         target_compile_options(msvcrtex PRIVATE -fno-lto)
