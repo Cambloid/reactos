@@ -1326,7 +1326,7 @@ C_ASSERT(sizeof(CLIENTIMC) == 0x34);
 #define CLIENTIMC_UNKNOWN5 0x2
 #define CLIENTIMC_UNKNOWN4 0x20
 #define CLIENTIMC_DESTROY 0x40
-#define CLIENTIMC_UNKNOWN3 0x80
+#define CLIENTIMC_DISABLEIME 0x80
 #define CLIENTIMC_UNKNOWN2 0x100
 
 DWORD
@@ -2431,7 +2431,7 @@ NtUserGetKeyboardLayoutList(
 BOOL
 NTAPI
 NtUserGetKeyboardLayoutName(
-    LPWSTR lpszName);
+    _Inout_ PUNICODE_STRING pustrName);
 
 DWORD
 NTAPI
