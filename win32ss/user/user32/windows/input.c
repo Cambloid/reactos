@@ -143,6 +143,69 @@ Failure:
     return FALSE;
 }
 
+
+/* Win: LoadPreloadKeyboardLayouts */
+VOID IntLoadPreloadKeyboardLayouts(VOID)
+{
+    UINT nNumber, uFlags;
+    DWORD cbValue, dwType;
+    WCHAR szNumber[32], szValue[KL_NAMELENGTH];
+    HKEY hPreloadKey;
+    BOOL bOK = FALSE;
+    HKL hKL, hDefaultKL = NULL;
+
+    if (RegOpenKeyW(HKEY_CURRENT_USER,
+                    L"Keyboard Layout\\Preload",
+                    &hPreloadKey) != ERROR_SUCCESS)
+    {
+        return;
+    }
+
+    for (nNumber = 1; nNumber <= 1000; ++nNumber)
+    {
+        _ultow(nNumber, szNumber, 10);
+
+        cbValue = sizeof(szValue);
+        if (RegQueryValueExW(hPreloadKey,
+                             szNumber,
+                             NULL,
+                             &dwType,
+                             (LPBYTE)szValue,
+                             &cbValue) != ERROR_SUCCESS)
+        {
+            break;
+        }
+
+        if (dwType != REG_SZ)
+            continue;
+
+        if (nNumber == 1) /* The first entry is for default keyboard layout */
+            uFlags = KLF_SUBSTITUTE_OK | KLF_ACTIVATE | KLF_RESET;
+        else
+            uFlags = KLF_SUBSTITUTE_OK | KLF_NOTELLSHELL | KLF_REPLACELANG;
+
+        hKL = LoadKeyboardLayoutW(szValue, uFlags);
+        if (hKL)
+        {
+            bOK = TRUE;
+            if (nNumber == 1) /* The first entry */
+                hDefaultKL = hKL;
+        }
+    }
+
+    RegCloseKey(hPreloadKey);
+
+    if (hDefaultKL)
+        SystemParametersInfoW(SPI_SETDEFAULTINPUTLANG, 0, &hDefaultKL, 0);
+
+    if (!bOK)
+    {
+        /* Fallback to English (US) */
+        LoadKeyboardLayoutW(L"00000409", KLF_SUBSTITUTE_OK | KLF_ACTIVATE | KLF_RESET);
+    }
+}
+
+
 BOOL APIENTRY
 CliSaveImeHotKey(DWORD dwID, UINT uModifiers, UINT uVirtualKey, HKL hKL, BOOL bDelete)
 {
@@ -638,22 +701,50 @@ LoadKeyboardLayoutA(LPCSTR pszKLID,
     return LoadKeyboardLayoutW(wszKLID, Flags);
 }
 
+inline BOOL IsValidKLID(_In_ LPCWSTR pwszKLID)
+{
+    return (pwszKLID != NULL) && (wcsspn(pwszKLID, L"0123456789ABCDEFabcdef") == (KL_NAMELENGTH - 1));
+}
+
+#define ENGLISH_US MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US)
+
 /*
- * @implemented
+ * @unimplemented
+ *
+ * NOTE: We adopt a different design from Microsoft's one for security reason.
  */
-HKL WINAPI
-LoadKeyboardLayoutW(LPCWSTR pwszKLID,
-                    UINT Flags)
+/* Win: LoadKeyboardLayoutWorker */
+HKL APIENTRY
+IntLoadKeyboardLayout(
+    _In_    HKL     hklUnload,
+    _In_z_  LPCWSTR pwszKLID,
+    _In_    LANGID  wLangID,
+    _In_    UINT    Flags,
+    _In_    BOOL    unknown5)
 {
     DWORD dwhkl, dwType, dwSize;
     UNICODE_STRING ustrKbdName;
     UNICODE_STRING ustrKLID;
     WCHAR wszRegKey[256] = L"SYSTEM\\CurrentControlSet\\Control\\Keyboard Layouts\\";
-    WCHAR wszLayoutId[10], wszNewKLID[10];
+    WCHAR wszLayoutId[10], wszNewKLID[KL_NAMELENGTH], szImeFileName[80];
+    PWCHAR endptr;
+    HKL hNewKL;
     HKEY hKey;
+    BOOL bIsIME;
 
-    /* LOWORD of dwhkl is Locale Identifier */
-    dwhkl = LOWORD(wcstoul(pwszKLID, NULL, 16));
+    if (!IsValidKLID(pwszKLID))
+    {
+        ERR("pwszKLID: %s\n", debugstr_w(pwszKLID));
+        return UlongToHandle(MAKELONG(ENGLISH_US, ENGLISH_US));
+    }
+
+    dwhkl = wcstoul(pwszKLID, &endptr, 16);
+
+    bIsIME = IS_IME_HKL(UlongToHandle(dwhkl));
+    if (!bIsIME) /* Not IME? */
+    {
+        dwhkl = LOWORD(dwhkl); /* LOWORD of dwhkl is language identifier */
+    }
 
     if (Flags & KLF_SUBSTITUTE_OK)
     {
@@ -677,8 +768,7 @@ LoadKeyboardLayoutW(LPCWSTR pwszKLID,
     StringCbCatW(wszRegKey, sizeof(wszRegKey), pwszKLID);
 
     /* Open layout registry key for read */
-    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, wszRegKey, 0,
-                      KEY_READ, &hKey) == ERROR_SUCCESS)
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, wszRegKey, 0, KEY_READ, &hKey) == ERROR_SUCCESS)
     {
         dwSize = sizeof(wszLayoutId);
         if (RegQueryValueExW(hKey, L"Layout Id", NULL, &dwType, (LPBYTE)wszLayoutId, &dwSize) == ERROR_SUCCESS)
@@ -686,10 +776,22 @@ LoadKeyboardLayoutW(LPCWSTR pwszKLID,
             /* If Layout Id is specified, use this value | f000 as HIWORD */
             /* FIXME: Microsoft Office expects this value to be something specific
              * for Japanese and Korean Windows with an IME the value is 0xe001
-             * We should probably check to see if an IME exists and if so then
-             * set this word properly.
              */
-            dwhkl |= (0xf000 | wcstol(wszLayoutId, NULL, 16)) << 16;
+            if (!bIsIME)
+                dwhkl |= (0xf000 | wcstol(wszLayoutId, NULL, 16)) << 16;
+        }
+
+        if (bIsIME)
+        {
+            /* Check "IME File" value */
+            dwSize = sizeof(szImeFileName);
+            if (RegQueryValueExW(hKey, L"IME File", NULL, &dwType, (LPBYTE)szImeFileName,
+                                 &dwSize) != ERROR_SUCCESS)
+            {
+                FIXME("Check IME file existence in system32\n");
+                bIsIME = FALSE;
+                dwhkl = LOWORD(dwhkl);
+            }
         }
 
         /* Close the key now */
@@ -707,9 +809,34 @@ LoadKeyboardLayoutW(LPCWSTR pwszKLID,
 
     ZeroMemory(&ustrKbdName, sizeof(ustrKbdName));
     RtlInitUnicodeString(&ustrKLID, pwszKLID);
-    return NtUserLoadKeyboardLayoutEx(NULL, 0, &ustrKbdName,
-                                      NULL, &ustrKLID,
-                                      dwhkl, Flags);
+    hNewKL = NtUserLoadKeyboardLayoutEx(NULL, 0, &ustrKbdName, NULL, &ustrKLID, dwhkl, Flags);
+    CliImmInitializeHotKeys(SETIMEHOTKEY_ADD, hNewKL);
+    return hNewKL;
+}
+
+/*
+ * @implemented
+ */
+HKL WINAPI
+LoadKeyboardLayoutW(LPCWSTR pwszKLID,
+                    UINT Flags)
+{
+    TRACE("(%s, 0x%X)\n", debugstr_w(pwszKLID), Flags);
+    return IntLoadKeyboardLayout(NULL, pwszKLID, 0, Flags, FALSE);
+}
+
+/*
+ * @unimplemented
+ */
+HKL WINAPI
+LoadKeyboardLayoutEx(HKL hklUnload,
+                     LPCWSTR pwszKLID,
+                     UINT Flags)
+{
+    FIXME("(%p, %s, 0x%X)", hklUnload, debugstr_w(pwszKLID), Flags);
+    if (!hklUnload)
+        return NULL;
+    return IntLoadKeyboardLayout(hklUnload, pwszKLID, 0, Flags, FALSE);
 }
 
 /*

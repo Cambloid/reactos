@@ -543,7 +543,9 @@ FUNC KiXmmException
     jge KiXmmExit
 
     /* Dispatch the exception */
-    DispatchException eax, 3, 0, 0, 0
+    DispatchException eax, 2, 0, [rbp+KTRAP_FRAME_MxCsr], 0
+
+    // FIXME: STATUS_FLOAT_MULTIPLE_TRAPS / STATUS_FLOAT_MULTIPLE_FAULTS
 
 KiXmmExit:
     /* Return */
@@ -820,6 +822,10 @@ PUBLIC KiSystemCallEntry64
     mov ds, ax
     mov es, ax
 
+    /* Save MCXSR and set kernel value */
+    stmxcsr [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_MxCsr]
+    ldmxcsr gs:[PcMxCsr]
+
 #if DBG
     /* Check IRQL */
     mov rax, cr8
@@ -858,6 +864,9 @@ no_user_apc_pending:
 
     /* Disable interrupts for return */
     cli
+
+    /* Restore MCXSR */
+    ldmxcsr [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_MxCsr]
 
     /* Restore old trap frame */
     mov rcx, gs:[PcCurrentThread]

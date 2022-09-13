@@ -59,7 +59,7 @@ BOOL APIENTRY Imm32InquireIme(PIMEDPI pImeDpi)
         if (!pImeDpi->ImeInquire(pImeInfo, szUIClass, dwSysInfoFlags))
             return FALSE;
     }
-    else if (Imm32IsCiceroMode() && pImeDpi->CtfImeInquireExW)
+    else if (IS_CICERO_MODE())
     {
         if (!pImeDpi->CtfImeInquireExW(pImeInfo, szUIClass, dwSysInfoFlags, pImeDpi->hKL))
             return FALSE;
@@ -149,6 +149,15 @@ BOOL APIENTRY Imm32InquireIme(PIMEDPI pImeDpi)
     return GetClassInfoW(pImeDpi->hInst, pImeDpi->szUIClass, &wcW);
 }
 
+/* Define stub IME functions */
+#define DEFINE_IME_ENTRY(type, name, params, optional) \
+    type APIENTRY Stub##name params { \
+        FIXME("%s: Why stub called?\n", #name); \
+        return (type)0; \
+    }
+#include "imetable.h"
+#undef DEFINE_IME_ENTRY
+
 // Win: LoadIME
 BOOL APIENTRY Imm32LoadIME(PIMEINFOEX pImeInfoEx, PIMEDPI pImeDpi)
 {
@@ -160,18 +169,19 @@ BOOL APIENTRY Imm32LoadIME(PIMEINFOEX pImeInfoEx, PIMEDPI pImeDpi)
     if (!Imm32GetSystemLibraryPath(szPath, _countof(szPath), pImeInfoEx->wszImeFile))
         return FALSE;
 
-    hIME = GetModuleHandleW(szPath);
+    pImeDpi->hInst = hIME = LoadLibraryW(szPath);
     if (hIME == NULL)
     {
-        hIME = LoadLibraryW(szPath);
-        if (hIME == NULL)
-        {
-            ERR("Imm32LoadIME: LoadLibraryW(%S) failed\n", szPath);
-            return FALSE;
-        }
+        ERR("Imm32LoadIME: LoadLibraryW(%s) failed\n", debugstr_w(szPath));
+        return FALSE;
     }
-    pImeDpi->hInst = hIME;
 
+    /* Populate the table by stub IME functions */
+#define DEFINE_IME_ENTRY(type, name, params, optional) pImeDpi->name = Stub##name;
+#include "imetable.h"
+#undef DEFINE_IME_ENTRY
+
+    /* Populate the table by real IME functions */
 #define DEFINE_IME_ENTRY(type, name, params, optional) \
     do { \
         fn = GetProcAddress(hIME, #name); \
@@ -219,7 +229,7 @@ Failed:
 }
 
 // Win: LoadImeDpi
-PIMEDPI APIENTRY Ime32LoadImeDpi(HKL hKL, BOOL bLock)
+PIMEDPI APIENTRY Imm32LoadImeDpi(HKL hKL, BOOL bLock)
 {
     IMEINFOEX ImeInfoEx;
     CHARSETINFO ci;
@@ -286,12 +296,12 @@ PIMEDPI APIENTRY Imm32FindOrLoadImeDpi(HKL hKL)
 {
     PIMEDPI pImeDpi;
 
-    if (!IS_IME_HKL(hKL) && (!Imm32IsCiceroMode() || Imm32Is16BitMode()))
+    if (!IS_IME_HKL(hKL) && (!IS_CICERO_MODE() || IS_16BIT_MODE()))
         return NULL;
 
     pImeDpi = ImmLockImeDpi(hKL);
     if (pImeDpi == NULL)
-        pImeDpi = Ime32LoadImeDpi(hKL, TRUE);
+        pImeDpi = Imm32LoadImeDpi(hKL, TRUE);
     return pImeDpi;
 }
 
@@ -301,7 +311,7 @@ ImeDpi_Escape(PIMEDPI pImeDpi, HIMC hIMC, UINT uSubFunc, LPVOID lpData, HKL hKL)
     if (IS_IME_HKL(hKL))
         return pImeDpi->ImeEscape(hIMC, uSubFunc, lpData);
 
-    if (Imm32IsCiceroMode() && pImeDpi->CtfImeEscapeEx)
+    if (IS_CICERO_MODE())
         return pImeDpi->CtfImeEscapeEx(hIMC, uSubFunc, lpData, hKL);
 
     return 0;
@@ -594,9 +604,6 @@ ImmGetImeMenuItemsAW(HIMC hIMC, DWORD dwFlags, DWORD dwType, LPVOID lpImeParentM
         return 0;
     }
 
-    if (pImeDpi->ImeGetImeMenuItems == NULL)
-        goto Quit;
-
     bImcIsAnsi = Imm32IsImcAnsi(hIMC);
 
     if (bImcIsAnsi != bTargetIsAnsi)
@@ -876,7 +883,7 @@ ImmGetImeInfoEx(PIMEINFOEX pImeInfoEx, IMEINFOEXCLASS SearchType, PVOID pvSearch
             if (!IS_IME_HKL(hKL))
             {
                 if (!CtfImmIsTextFrameServiceDisabled() ||
-                    !Imm32IsCiceroMode() || Imm32Is16BitMode())
+                    !IS_CICERO_MODE() || IS_16BIT_MODE())
                 {
                     return FALSE;
                 }
@@ -987,12 +994,12 @@ BOOL WINAPI ImmLoadIME(HKL hKL)
 {
     PIMEDPI pImeDpi;
 
-    if (!IS_IME_HKL(hKL) && (!Imm32IsCiceroMode() || Imm32Is16BitMode()))
+    if (!IS_IME_HKL(hKL) && (!IS_CICERO_MODE() || IS_16BIT_MODE()))
         return FALSE;
 
     pImeDpi = Imm32FindImeDpi(hKL);
     if (pImeDpi == NULL)
-        pImeDpi = Ime32LoadImeDpi(hKL, FALSE);
+        pImeDpi = Imm32LoadImeDpi(hKL, FALSE);
     return (pImeDpi != NULL);
 }
 
@@ -1815,7 +1822,7 @@ BOOL WINAPI ImmSetConversionStatus(HIMC hIMC, DWORD fdwConversion, DWORD fdwSent
     TRACE("(%p, 0x%lX, 0x%lX)\n", hIMC, fdwConversion, fdwSentence);
 
     hKL = GetKeyboardLayout(0);
-    if (!IS_IME_HKL(hKL) && Imm32IsCiceroMode() && !Imm32Is16BitMode())
+    if (!IS_IME_HKL(hKL) && IS_CICERO_MODE() && !IS_16BIT_MODE())
         fUseCicero = TRUE;
 
     if (Imm32IsCrossThreadAccess(hIMC))
