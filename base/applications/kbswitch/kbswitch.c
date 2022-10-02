@@ -10,8 +10,6 @@
 #include "kbswitch.h"
 
 #define WM_NOTIFYICONMSG (WM_USER + 248)
-#define CX_ICON 16
-#define CY_ICON 16
 
 PKBSWITCHSETHOOKS    KbSwitchSetHooks    = NULL;
 PKBSWITCHDELETEHOOKS KbSwitchDeleteHooks = NULL;
@@ -147,51 +145,60 @@ static HICON
 CreateTrayIcon(LPTSTR szLCID)
 {
     LANGID LangID;
-    TCHAR szBuf[3];
-    HDC hdc;
+    TCHAR szBuf[4];
+    HDC hdcScreen, hdc;
     HBITMAP hbmColor, hbmMono, hBmpOld;
+    HFONT hFont, hFontOld;
+    LOGFONT lf;
     RECT rect;
-    HFONT hFontOld, hFont;
     ICONINFO IconInfo;
     HICON hIcon;
-    LOGFONT lf;
+    INT cxIcon = GetSystemMetrics(SM_CXSMICON);
+    INT cyIcon = GetSystemMetrics(SM_CYSMICON);
 
     /* Getting "EN", "FR", etc. from English, French, ... */
-    LangID = (LANGID)_tcstoul(szLCID, NULL, 16);
-    if (!GetLocaleInfo(LangID, LOCALE_SISO639LANGNAME, szBuf, ARRAYSIZE(szBuf)))
+    LangID = LANGIDFROMLCID(_tcstoul(szLCID, NULL, 16));
+    if (GetLocaleInfo(LangID,
+                      LOCALE_SABBREVLANGNAME | LOCALE_NOUSEROVERRIDE,
+                      szBuf,
+                      ARRAYSIZE(szBuf)) == 0)
     {
-        StringCchCopy(szBuf, ARRAYSIZE(szBuf), _T("??"));
+        szBuf[0] = szBuf[1] = _T('?');
     }
-    CharUpper(szBuf);
+    szBuf[2] = 0; /* Truncate the identifier to two characters: "ENG" --> "EN" etc. */
 
     /* Create hdc, hbmColor and hbmMono */
-    hdc = CreateCompatibleDC(NULL);
-    hbmColor = CreateCompatibleBitmap(hdc, CX_ICON, CY_ICON);
-    hbmMono = CreateBitmap(CX_ICON, CY_ICON, 1, 1, NULL);
-
-    /* Create a font */
-    ZeroMemory(&lf, sizeof(lf));
-    lf.lfHeight = -11;
-    lf.lfCharSet = ANSI_CHARSET;
-    lf.lfWeight = FW_NORMAL;
-    StringCchCopy(lf.lfFaceName, ARRAYSIZE(lf.lfFaceName), _T("Tahoma"));
-    hFont = CreateFontIndirect(&lf);
+    hdcScreen = GetDC(NULL);
+    hdc = CreateCompatibleDC(hdcScreen);
+    hbmColor = CreateCompatibleBitmap(hdcScreen, cxIcon, cyIcon);
+    ReleaseDC(NULL, hdcScreen);
+    hbmMono = CreateBitmap(cxIcon, cyIcon, 1, 1, NULL);
 
     /* Checking NULL */
-    if (!hdc || !hbmColor || !hbmMono || !hFont)
+    if (!hdc || !hbmColor || !hbmMono)
     {
-        if (hdc)
-            DeleteDC(hdc);
-        if (hbmColor)
-            DeleteObject(hbmColor);
         if (hbmMono)
             DeleteObject(hbmMono);
-        if (hFont)
-            DeleteObject(hFont);
+        if (hbmColor)
+            DeleteObject(hbmColor);
+        if (hdc)
+            DeleteDC(hdc);
         return NULL;
     }
 
-    SetRect(&rect, 0, 0, CX_ICON, CY_ICON);
+    /* Create a font */
+    hFont = NULL;
+    if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0))
+    {
+        /* Override the current size with something manageable */
+        lf.lfHeight = -11;
+        lf.lfWidth = 0;
+        hFont = CreateFontIndirect(&lf);
+    }
+    if (!hFont)
+        hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+
+    SetRect(&rect, 0, 0, cxIcon, cyIcon);
 
     /* Draw hbmColor */
     hBmpOld = SelectObject(hdc, hbmColor);
@@ -202,23 +209,23 @@ CreateTrayIcon(LPTSTR szLCID)
     SetBkMode(hdc, TRANSPARENT);
     DrawText(hdc, szBuf, 2, &rect, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
     SelectObject(hdc, hFontOld);
-    SelectObject(hdc, hBmpOld);
 
-    /* Fill hbmMono by black */
-    hBmpOld = SelectObject(hdc, hbmMono);
-    PatBlt(hdc, 0, 0, CX_ICON, CY_ICON, BLACKNESS);
+    /* Fill hbmMono with black */
+    SelectObject(hdc, hbmMono);
+    PatBlt(hdc, 0, 0, cxIcon, cyIcon, BLACKNESS);
     SelectObject(hdc, hBmpOld);
 
     /* Create an icon from hbmColor and hbmMono */
+    IconInfo.fIcon = TRUE;
+    IconInfo.xHotspot = IconInfo.yHotspot = 0;
     IconInfo.hbmColor = hbmColor;
     IconInfo.hbmMask = hbmMono;
-    IconInfo.fIcon = TRUE;
     hIcon = CreateIconIndirect(&IconInfo);
 
     /* Clean up */
-    DeleteObject(hbmColor);
-    DeleteObject(hbmMono);
     DeleteObject(hFont);
+    DeleteObject(hbmMono);
+    DeleteObject(hbmColor);
     DeleteDC(hdc);
 
     return hIcon;
@@ -261,6 +268,7 @@ static VOID
 UpdateTrayIcon(HWND hwnd, LPTSTR szLCID, LPTSTR szName)
 {
     NOTIFYICONDATA tnid = { sizeof(tnid), hwnd, 1, NIF_ICON | NIF_MESSAGE | NIF_TIP };
+
     tnid.uCallbackMessage = WM_NOTIFYICONMSG;
     tnid.hIcon = CreateTrayIcon(szLCID);
     StringCchCopy(tnid.szTip, ARRAYSIZE(tnid.szTip), szName);
@@ -543,6 +551,12 @@ WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
                     if (!ShellExecuteEx(&shInputDll))
                         MessageBox(hwnd, _T("Can't start input.dll"), NULL, MB_OK | MB_ICONERROR);
 
+                    break;
+                }
+
+                case ID_NEXTLAYOUT:
+                {
+                    ActivateLayout(hwnd, GetNextLayout());
                     break;
                 }
 

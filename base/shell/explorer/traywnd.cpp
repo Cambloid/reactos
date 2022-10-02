@@ -2943,7 +2943,6 @@ ChangePos:
             {
                 CComPtr<IContextMenu> ctxMenu;
                 CStartMenuBtnCtxMenu_CreateInstance(this, m_hWnd, &ctxMenu);
-                ctxMenu->AddRef();
                 TrackCtxMenu(ctxMenu, ppt, hWndExclude, m_Position == ABE_BOTTOM, this);
             }
         }
@@ -3045,10 +3044,8 @@ HandleTrayContextMenu:
 
     LRESULT OnNcLButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
     {
-        if (CheckShowDesktopButtonClick(lParam, bHandled))
-            return 0;
-
-        return 0;
+        CheckShowDesktopButtonClick(lParam, bHandled);
+        return FALSE;
     }
 
     LRESULT OnAppTrayDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
