@@ -1,29 +1,10 @@
 /*
- *  ReactOS Win32 Applications
- *  Copyright (C) 2007 ReactOS Team
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- */
-/*
- * PROJECT:         ReactOS Event Log Viewer
- * LICENSE:         GPL - See COPYING in the top level directory
- * FILE:            base/applications/mscutils/eventvwr/eventvwr.c
- * PURPOSE:         Event Log Viewer main file
- * PROGRAMMERS:     Marc Piulachs (marc.piulachs at codexchange [dot] net)
- *                  Eric Kohl
- *                  Hermes Belusca-Maito
+ * PROJECT:     ReactOS Event Log Viewer
+ * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
+ * PURPOSE:     Event Log Viewer main file.
+ * COPYRIGHT:   Copyright 2007 Marc Piulachs <marc.piulachs@codexchange.net>
+ *              Copyright 2008-2016 Eric Kohl <eric.kohl@reactos.org>
+ *              Copyright 2016-2022 Hermès Bélusca-Maïto <hermes.belusca-maito@reactos.org>
  */
 
 #include "eventvwr.h"
@@ -52,8 +33,8 @@ static const LPCWSTR SystemLogs[] =
 };
 
 /* MessageFile message buffer size */
-#define EVENT_MESSAGE_EVENTTEXT_BUFFER  1024*10                             // NOTE: Used by evtdetctl.c
-#define EVENT_MESSAGE_FILE_BUFFER       1024*10
+#define EVENT_MESSAGE_EVENTTEXT_BUFFER  (1024*10)                           // NOTE: Used by evtdetctl.c
+#define EVENT_MESSAGE_FILE_BUFFER       (1024*10)
 #define EVENT_DLL_SEPARATOR             L";"
 #define EVENT_CATEGORY_MESSAGE_FILE     L"CategoryMessageFile"
 #define EVENT_MESSAGE_FILE              L"EventMessageFile"
@@ -2053,7 +2034,7 @@ EnumEventsThread(IN LPVOID lpParameter)
         // (EventLogFilter->NumOfEventLogs > 1)
         MessageBoxW(hwndMainWindow,
                     L"Many-logs filtering is not implemented yet!!",
-                    L"Event Log",
+                    szTitle,
                     MB_OK | MB_ICONINFORMATION);
     }
 
@@ -3381,16 +3362,44 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                         if ( (pnmv->uChanged  & LVIF_STATE) && /* The state has changed */
                              (pnmv->uNewState & LVIS_SELECTED) /* The item has been (de)selected */ )
                         {
-                            if (hwndEventDetails)
-                                SendMessageW(hwndEventDetails, EVT_DISPLAY, 0, 0);
+                            if (!hwndEventDetails)
+                                break;
+
+                            /* Verify the index of selected item */
+                            if (pnmv->iItem == -1)
+                            {
+                                MessageBoxW(hWnd,
+                                            L"No selected items!",
+                                            szTitle,
+                                            MB_OK | MB_ICONERROR);
+                                break;
+                            }
+                            SendMessageW(hwndEventDetails, EVT_DISPLAY, 0, (LPARAM)pnmv->iItem);
                         }
                         break;
                     }
 
+#ifdef LVN_ITEMACTIVATE
+                    case LVN_ITEMACTIVATE:
+                    {
+                        /* Get the index of the single focused selected item */
+                        LPNMITEMACTIVATE lpnmitem = (LPNMITEMACTIVATE)lParam;
+                        INT iItem = lpnmitem->iItem;
+                        if (iItem != -1)
+                            SendMessageW(hWnd, WM_COMMAND, IDM_EVENT_DETAILS, (LPARAM)iItem);
+                        break;
+                    }
+#else // LVN_ITEMACTIVATE
                     case NM_DBLCLK:
                     case NM_RETURN:
-                        SendMessageW(hWnd, WM_COMMAND, IDM_EVENT_DETAILS, 0);
+                    {
+                        /* Get the index of the single focused selected item */
+                        INT iItem = ListView_GetNextItem(hwndListView, -1, LVNI_FOCUSED | LVNI_SELECTED);
+                        if (iItem != -1)
+                            SendMessageW(hWnd, WM_COMMAND, IDM_EVENT_DETAILS, (LPARAM)iItem);
                         break;
+                    }
+#endif // LVN_ITEMACTIVATE
                 }
             }
             else if (hdr->hwndFrom == hwndTreeView)
@@ -3533,22 +3542,14 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
 
                 case IDM_LIST_NEWEST:
-                {
-                    CheckMenuRadioItem(hMainMenu, IDM_LIST_NEWEST, IDM_LIST_OLDEST, IDM_LIST_NEWEST, MF_BYCOMMAND);
-                    if (!Settings.bNewestEventsFirst)
-                    {
-                        Settings.bNewestEventsFirst = TRUE;
-                        Refresh(GetSelectedFilter(NULL));
-                    }
-                    break;
-                }
-
                 case IDM_LIST_OLDEST:
                 {
-                    CheckMenuRadioItem(hMainMenu, IDM_LIST_NEWEST, IDM_LIST_OLDEST, IDM_LIST_OLDEST, MF_BYCOMMAND);
-                    if (Settings.bNewestEventsFirst)
+                    BOOL bNewest = (LOWORD(wParam) == IDM_LIST_NEWEST);
+                    CheckMenuRadioItem(hMainMenu, IDM_LIST_NEWEST, IDM_LIST_OLDEST, LOWORD(wParam), MF_BYCOMMAND);
+
+                    if (bNewest != Settings.bNewestEventsFirst)
                     {
-                        Settings.bNewestEventsFirst = FALSE;
+                        Settings.bNewestEventsFirst = bNewest;
                         Refresh(GetSelectedFilter(NULL));
                     }
                     break;
@@ -3556,16 +3557,35 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
                 case IDM_EVENT_DETAILS:
                 {
-                    // LPNMITEMACTIVATE lpnmitem = (LPNMITEMACTIVATE)lParam;
-                    PEVENTLOGFILTER EventLogFilter = GetSelectedFilter(NULL);
-                    if (/*lpnmitem->iItem != -1 &&*/ EventLogFilter)
+                    INT iItem;
+                    PEVENTLOGFILTER EventLogFilter;
+
+                    /* Get the index of the single focused selected item */
+                    iItem = ListView_GetNextItem(hwndListView, -1, LVNI_FOCUSED | LVNI_SELECTED);
+                    if (iItem == -1)
                     {
+                        /**
+                        // FIXME: Reenable this check once menu items are
+                        // correctly disabled when no event is selected, etc.
+                        MessageBoxW(hWnd,
+                                    L"No selected items!",
+                                    szTitle,
+                                    MB_OK | MB_ICONERROR);
+                        **/
+                        break;
+                    }
+
+                    EventLogFilter = GetSelectedFilter(NULL);
+                    if (EventLogFilter)
+                    {
+                        EVENTDETAIL_INFO DetailInfo = {EventLogFilter, iItem};
+
                         EventLogFilter_AddRef(EventLogFilter);
                         DialogBoxParamW(hInst,
                                         MAKEINTRESOURCEW(IDD_EVENTDETAILS_DLG),
                                         hWnd,
                                         EventDetails,
-                                        (LPARAM)EventLogFilter);
+                                        (LPARAM)&DetailInfo);
                         EventLogFilter_Release(EventLogFilter);
                     }
                     break;
@@ -3627,11 +3647,11 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
 
                 case IDM_HELP:
-                    MessageBoxW(hwndMainWindow,
+                    MessageBoxW(hWnd,
                                 L"Help not implemented yet!",
-                                L"Event Log",
+                                szTitle,
                                 MB_OK | MB_ICONINFORMATION);
-                                break;
+                    break;
 
                 case IDM_EXIT:
                     DestroyWindow(hWnd);
@@ -4211,7 +4231,7 @@ EventLogPropProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 case IDHELP:
                     MessageBoxW(hDlg,
                                 L"Help not implemented yet!",
-                                L"Event Log",
+                                szTitle,
                                 MB_OK | MB_ICONINFORMATION);
                     return (INT_PTR)TRUE;
 
@@ -4298,8 +4318,8 @@ EventDetails(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_INITDIALOG:
         {
             LONG_PTR dwStyle;
-            INT sbVXSize, sbHYSize;
             RECT rcWnd, rect;
+            INT iEventItem;
 
             hWndDetailsCtrl = CreateEventDetailsCtrl(hInst, hDlg, lParam);
             if (!hWndDetailsCtrl)
@@ -4310,11 +4330,12 @@ EventDetails(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
             /* Create a size grip if the dialog has a sizing border */
             GetClientRect(hDlg, &rcWnd);
-            dwStyle  = GetWindowLongPtrW(hDlg, GWL_STYLE);
-            sbVXSize = GetSystemMetrics(SM_CXVSCROLL);
-            sbHYSize = GetSystemMetrics(SM_CYHSCROLL);
+            dwStyle = GetWindowLongPtrW(hDlg, GWL_STYLE);
             if (dwStyle & WS_THICKFRAME /* == WS_SIZEBOX */)
             {
+                INT sbVXSize = GetSystemMetrics(SM_CXVSCROLL);
+                INT sbHYSize = GetSystemMetrics(SM_CYHSCROLL);
+
                 hWndGrip = CreateWindowW(WC_SCROLLBARW,
                                          NULL,
                                          WS_CHILD | WS_VISIBLE | /**/ WS_CLIPSIBLINGS | /**/ SBS_SIZEGRIP | SBS_SIZEBOXBOTTOMRIGHTALIGN,
@@ -4360,8 +4381,9 @@ EventDetails(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
             cxOld = rcWnd.right - rcWnd.left;
             cyOld = rcWnd.bottom - rcWnd.top;
 
-            /* Show event info on dialog control */
-            SendMessageW(hWndDetailsCtrl, EVT_DISPLAY, 0, 0);
+            /* Show event info in dialog control */
+            iEventItem = (lParam != 0 ? ((PEVENTDETAIL_INFO)lParam)->iEventItem : 0);
+            SendMessageW(hWndDetailsCtrl, EVT_DISPLAY, 0, (LPARAM)iEventItem);
 
             // SetWindowPos(hWndDetailsCtrl, NULL,
                          // 0, 0,
@@ -4399,7 +4421,7 @@ EventDetails(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 case IDHELP:
                     MessageBoxW(hDlg,
                                 L"Help not implemented yet!",
-                                L"Event Log",
+                                szTitle,
                                 MB_OK | MB_ICONINFORMATION);
                     return (INT_PTR)TRUE;
 
