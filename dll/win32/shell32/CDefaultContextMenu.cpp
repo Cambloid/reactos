@@ -646,7 +646,7 @@ CDefaultContextMenu::QueryContextMenu(
     QCMINFO qcminfo = {hMenu, IndexMenu, idCmdNext, idCmdLast, NULL};
     if (SUCCEEDED(_DoCallback(DFM_MERGECONTEXTMENU, uFlags, &qcminfo)))
     {
-        UINT added = idCmdNext - (idCmdFirst + cIds);
+        UINT added = qcminfo.idCmdFirst - idCmdNext;
         cIds += added;
         IndexMenu += added;
         m_iIdCBFirst = m_iIdSHELast;
@@ -1222,7 +1222,7 @@ CDefaultContextMenu::InvokeCommand(
 
     if (LocalInvokeInfo.cbSize >= sizeof(CMINVOKECOMMANDINFOEX) && (LocalInvokeInfo.fMask & CMIC_MASK_PTINVOKE))
     {
-        if (FAILED_UNEXPECTEDLY(DataObject_SetOffset(m_pDataObj, &LocalInvokeInfo.ptInvoke)))
+        if (m_pDataObj && FAILED_UNEXPECTEDLY(DataObject_SetOffset(m_pDataObj, &LocalInvokeInfo.ptInvoke)))
         {
             ERR("Unable to add OFFSET to DataObject!\n");
         }
