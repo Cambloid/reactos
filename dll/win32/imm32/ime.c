@@ -54,12 +54,15 @@ BOOL APIENTRY Imm32InquireIme(PIMEDPI pImeDpi)
     if (NtUserGetThreadState(THREADSTATE_ISWINLOGON2))
         dwSysInfoFlags |= IME_SYSINFO_WINLOGON;
 
+    if (GetWin32ClientInfo()->dwTIFlags & TIF_16BIT)
+        dwSysInfoFlags |= IME_SYSINFO_WOW16;
+
     if (IS_IME_HKL(pImeDpi->hKL))
     {
         if (!pImeDpi->ImeInquire(pImeInfo, szUIClass, dwSysInfoFlags))
             return FALSE;
     }
-    else if (IS_CICERO_MODE())
+    else if (IS_CICERO_MODE() && !IS_16BIT_MODE())
     {
         if (!pImeDpi->CtfImeInquireExW(pImeInfo, szUIClass, dwSysInfoFlags, pImeDpi->hKL))
             return FALSE;
@@ -69,7 +72,7 @@ BOOL APIENTRY Imm32InquireIme(PIMEDPI pImeDpi)
         return FALSE;
     }
 
-    szUIClass[_countof(szUIClass) - 1] = 0;
+    szUIClass[_countof(szUIClass) - 1] = UNICODE_NULL; /* Avoid buffer overrun */
 
     if (pImeInfo->dwPrivateDataSize == 0)
         pImeInfo->dwPrivateDataSize = sizeof(DWORD);
@@ -139,11 +142,13 @@ BOOL APIENTRY Imm32InquireIme(PIMEDPI pImeDpi)
     }
     else
     {
-        if (pImeDpi->uCodePage != GetACP() && pImeDpi->uCodePage)
+        if (pImeDpi->uCodePage != GetACP() && pImeDpi->uCodePage != CP_ACP)
             return FALSE;
 
         MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, (LPSTR)szUIClass, -1,
                             pImeDpi->szUIClass, _countof(pImeDpi->szUIClass));
+
+        pImeDpi->szUIClass[_countof(pImeDpi->szUIClass) - 1] = UNICODE_NULL;
     }
 
     return GetClassInfoW(pImeDpi->hInst, pImeDpi->szUIClass, &wcW);
@@ -311,7 +316,7 @@ ImeDpi_Escape(PIMEDPI pImeDpi, HIMC hIMC, UINT uSubFunc, LPVOID lpData, HKL hKL)
     if (IS_IME_HKL(hKL))
         return pImeDpi->ImeEscape(hIMC, uSubFunc, lpData);
 
-    if (IS_CICERO_MODE())
+    if (IS_CICERO_MODE() && !IS_16BIT_MODE())
         return pImeDpi->CtfImeEscapeEx(hIMC, uSubFunc, lpData, hKL);
 
     return 0;
@@ -336,7 +341,7 @@ BOOL APIENTRY Imm32ReleaseIME(HKL hKL)
 
     if (pImeDpi0->cLockObj)
     {
-        pImeDpi0->dwFlags |= IMEDPI_FLAG_UNKNOWN;
+        pImeDpi0->dwFlags |= IMEDPI_FLAG_UNLOADED;
         ret = FALSE;
         goto Quit;
     }
@@ -927,7 +932,7 @@ PIMEDPI WINAPI ImmLockImeDpi(HKL hKL)
         if (pImeDpi->hKL == hKL) /* found */
         {
             /* lock if possible */
-            if (pImeDpi->dwFlags & IMEDPI_FLAG_UNKNOWN)
+            if (pImeDpi->dwFlags & IMEDPI_FLAG_UNLOADED)
                 pImeDpi = NULL;
             else
                 ++(pImeDpi->cLockObj);
@@ -961,7 +966,7 @@ VOID WINAPI ImmUnlockImeDpi(PIMEDPI pImeDpi)
         return;
     }
 
-    if ((pImeDpi->dwFlags & IMEDPI_FLAG_UNKNOWN) == 0)
+    if ((pImeDpi->dwFlags & IMEDPI_FLAG_UNLOADED) == 0)
     {
         if ((pImeDpi->dwFlags & IMEDPI_FLAG_LOCKED) == 0 ||
             (pImeDpi->ImeInfo.fdwProperty & IME_PROP_END_UNLOAD) == 0)
@@ -1224,7 +1229,7 @@ LRESULT WINAPI ImmEscapeA(HKL hKL, HIMC hIMC, UINT uSubFunc, LPVOID lpData)
             ret = ImeDpi_Escape(pImeDpi, hIMC, uSubFunc, szW, hKL);
             if (ret)
             {
-                szW[_countof(szW) - 1] = 0;
+                szW[_countof(szW) - 1] = UNICODE_NULL; /* Avoid buffer overrun */
                 WideCharToMultiByte(pImeDpi->uCodePage, 0, szW, -1,
                                     lpData, MAX_IMM_FILENAME, NULL, NULL);
                 ((LPSTR)lpData)[MAX_IMM_FILENAME - 1] = 0;
@@ -1235,7 +1240,7 @@ LRESULT WINAPI ImmEscapeA(HKL hKL, HIMC hIMC, UINT uSubFunc, LPVOID lpData)
         case IME_ESC_HANJA_MODE:
             MultiByteToWideChar(pImeDpi->uCodePage, MB_PRECOMPOSED,
                                 lpData, -1, szW, _countof(szW));
-            szW[_countof(szW) - 1] = 0;
+            szW[_countof(szW) - 1] = UNICODE_NULL; /* Avoid buffer overrun */
             ret = ImeDpi_Escape(pImeDpi, hIMC, uSubFunc, szW, hKL);
             break;
 
@@ -1304,7 +1309,7 @@ LRESULT WINAPI ImmEscapeW(HKL hKL, HIMC hIMC, UINT uSubFunc, LPVOID lpData)
                 szA[_countof(szA) - 1] = 0;
                 MultiByteToWideChar(pImeDpi->uCodePage, MB_PRECOMPOSED,
                                     szA, -1, lpData, MAX_IMM_FILENAME);
-                ((LPWSTR)lpData)[MAX_IMM_FILENAME - 1] = 0;
+                ((LPWSTR)lpData)[MAX_IMM_FILENAME - 1] = UNICODE_NULL; /* Avoid buffer overrun */
             }
             break;
 

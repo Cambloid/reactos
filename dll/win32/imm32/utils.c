@@ -207,6 +207,7 @@ LPSTR APIENTRY Imm32AnsiFromWide(LPCWSTR pszW)
 }
 
 /* Converts the character index */
+/* Win: CalcCharacterPositionAtoW */
 LONG APIENTRY IchWideFromAnsi(LONG cchAnsi, LPCSTR pchAnsi, UINT uCodePage)
 {
     LONG cchWide;
@@ -227,6 +228,7 @@ LONG APIENTRY IchWideFromAnsi(LONG cchAnsi, LPCSTR pchAnsi, UINT uCodePage)
 }
 
 /* Converts the character index */
+/* Win: CalcCharacterPositionWtoA */
 LONG APIENTRY IchAnsiFromWide(LONG cchWide, LPCWSTR pchWide, UINT uCodePage)
 {
     LONG cb, cchAnsi;
@@ -904,7 +906,7 @@ UINT APIENTRY Imm32GetImeLayout(PREG_IME pLayouts, UINT cLayouts)
         szImeFileName[0] = 0;
         cbData = sizeof(szImeFileName);
         RegQueryValueExW(hkeyIME, L"Ime File", NULL, NULL, (LPBYTE)szImeFileName, &cbData);
-        szImeFileName[_countof(szImeFileName) - 1] = 0;
+        szImeFileName[_countof(szImeFileName) - 1] = UNICODE_NULL; /* Avoid buffer overrun */
 
         RegCloseKey(hkeyIME);
 
@@ -997,7 +999,7 @@ BOOL APIENTRY Imm32WriteImeLayout(HKL hKL, LPCWSTR pchFilePart, LPCWSTR pszLayou
         cbData = sizeof(szPreloadKey);
         lError = RegQueryValueExW(hkeyPreload, szPreloadNumber, NULL, NULL,
                                   (LPBYTE)szPreloadKey, &cbData);
-        szPreloadKey[_countof(szPreloadKey) - 1] = 0;
+        szPreloadKey[_countof(szPreloadKey) - 1] = UNICODE_NULL; /* Avoid buffer overrun */
 
         if (lError != ERROR_SUCCESS || lstrcmpiW(szImeKey, szPreloadKey) == 0)
             break; /* Found an empty room or the same key */
