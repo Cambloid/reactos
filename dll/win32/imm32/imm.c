@@ -180,8 +180,8 @@ VOID APIENTRY Imm32SelectInputContext(HKL hNewKL, HKL hOldKL, HIMC hIMC)
     LPCOMPOSITIONSTRING pCS;
     LOGFONTA LogFontA;
     LOGFONTW LogFontW;
-    BOOL fOpen, bIsNewHKLIme = TRUE, bIsOldHKLIme = TRUE, bClientWide, bNewDpiWide;
-    DWORD cbNewPrivate = 0, cbOldPrivate = 0, dwConversion, dwSentence, dwSize, dwNewSize;
+    BOOL fOldOpen, bIsNewHKLIme = TRUE, bIsOldHKLIme = TRUE, bClientWide, bNewDpiWide;
+    DWORD cbNewPrivate = 0, cbOldPrivate = 0, dwOldConversion, dwOldSentence, dwSize, dwNewSize;
     PIMEDPI pNewImeDpi = NULL, pOldImeDpi = NULL;
     HANDLE hPrivate;
     PIME_STATE pNewState = NULL, pOldState = NULL;
@@ -205,14 +205,11 @@ VOID APIENTRY Imm32SelectInputContext(HKL hNewKL, HKL hOldKL, HIMC hIMC)
         pClientImc->uCodePage = CP_ACP;
     }
 
-    if (cbNewPrivate < sizeof(DWORD))
-        cbNewPrivate = sizeof(DWORD);
-
     if (pOldImeDpi)
         cbOldPrivate = pOldImeDpi->ImeInfo.dwPrivateDataSize;
 
-    if (cbOldPrivate < sizeof(DWORD))
-        cbOldPrivate = sizeof(DWORD);
+    cbNewPrivate = max(cbNewPrivate, sizeof(DWORD));
+    cbOldPrivate = max(cbOldPrivate, sizeof(DWORD));
 
     if (pClientImc->hKL == hOldKL)
     {
@@ -226,13 +223,10 @@ VOID APIENTRY Imm32SelectInputContext(HKL hNewKL, HKL hOldKL, HIMC hIMC)
         pClientImc->hKL = NULL;
     }
 
-    if (CtfImmIsTextFrameServiceDisabled())
+    if (CtfImmIsTextFrameServiceDisabled() && IS_CICERO_MODE() && !IS_16BIT_MODE())
     {
-        if (IS_IMM_MODE() && !IS_CICERO_MODE())
-        {
-            bIsNewHKLIme = IS_IME_HKL(hNewKL);
-            bIsOldHKLIme = IS_IME_HKL(hOldKL);
-        }
+        bIsNewHKLIme = IS_IME_HKL(hNewKL);
+        bIsOldHKLIme = IS_IME_HKL(hOldKL);
     }
 
     pIC = (LPINPUTCONTEXTDX)Imm32InternalLockIMC(hIMC, FALSE);
@@ -250,9 +244,9 @@ VOID APIENTRY Imm32SelectInputContext(HKL hNewKL, HKL hOldKL, HIMC hIMC)
     }
     else
     {
-        dwConversion = pIC->fdwConversion;
-        dwSentence = pIC->fdwSentence;
-        fOpen = pIC->fOpen;
+        dwOldConversion = pIC->fdwConversion;
+        dwOldSentence = pIC->fdwSentence;
+        fOldOpen = pIC->fOpen;
 
         if (pNewImeDpi)
         {
@@ -359,7 +353,8 @@ VOID APIENTRY Imm32SelectInputContext(HKL hNewKL, HKL hOldKL, HIMC hIMC)
             if (pOldState)
             {
                 pOldState->fOpen = !!pIC->fOpen;
-                pOldState->dwConversion = (pIC->fdwConversion & ~IME_CMODE_EUDC);
+                pOldState->dwConversion = pIC->fdwConversion;
+                pOldState->dwConversion &= ~IME_CMODE_EUDC;
                 pOldState->dwSentence = pIC->fdwSentence;
                 pOldState->dwInit = pIC->fdwInit;
             }
@@ -376,7 +371,8 @@ VOID APIENTRY Imm32SelectInputContext(HKL hNewKL, HKL hOldKL, HIMC hIMC)
                     pIC->fOpen = pNewState->fOpen;
                 }
 
-                pIC->fdwConversion = (pNewState->dwConversion & ~IME_CMODE_EUDC);
+                pIC->fdwConversion = pNewState->dwConversion;
+                pIC->fdwConversion &= ~IME_CMODE_EUDC;
                 pIC->fdwSentence = pNewState->dwSentence;
                 pIC->fdwInit = pNewState->dwInit;
             }
@@ -396,11 +392,11 @@ VOID APIENTRY Imm32SelectInputContext(HKL hNewKL, HKL hOldKL, HIMC hIMC)
         }
 
         pIC->dwChange = 0;
-        if (pIC->fOpen != fOpen)
+        if (pIC->fOpen != fOldOpen)
             pIC->dwChange |= INPUTCONTEXTDX_CHANGE_OPEN;
-        if (pIC->fdwConversion != dwConversion)
+        if (pIC->fdwConversion != dwOldConversion)
             pIC->dwChange |= INPUTCONTEXTDX_CHANGE_CONVERSION;
-        if (pIC->fdwSentence != dwSentence)
+        if (pIC->fdwSentence != dwOldSentence)
             pIC->dwChange |= INPUTCONTEXTDX_CHANGE_SENTENCE;
 
         ImmUnlockIMC(hIMC);
@@ -481,6 +477,7 @@ BOOL WINAPI ImmActivateLayout(HKL hKL)
     return TRUE;
 }
 
+/* Win: Internal_CtfImeSetActiveContextAlways */
 static VOID APIENTRY Imm32CiceroSetActiveContext(HIMC hIMC, BOOL fActive, HWND hWnd, HKL hKL)
 {
     TRACE("We have to do something\n");
@@ -778,6 +775,8 @@ Imm32CreateInputContext(HIMC hIMC, LPINPUTCONTEXT pIC, PCLIENTIMC pClientImc, HK
     if (!pIC->hPrivate)
         goto Fail;
 
+    CtfImmTIMCreateInputContext(hIMC);
+
     if (pImeDpi)
     {
         /* Select the IME */
@@ -829,9 +828,14 @@ LPINPUTCONTEXT APIENTRY Imm32InternalLockIMC(HIMC hIMC, BOOL fSelect)
     {
         pIC = LocalLock(pClientImc->hInputContext);
         if (pIC)
+        {
+            CtfImmTIMCreateInputContext(hIMC);
             goto Success;
+        }
         else
+        {
             goto Failure;
+        }
     }
 
     dwThreadId = (DWORD)NtUserQueryInputContext(hIMC, QIC_INPUTTHREADID);
@@ -863,12 +867,12 @@ LPINPUTCONTEXT APIENTRY Imm32InternalLockIMC(HIMC hIMC, BOOL fSelect)
     hNewKL = GetKeyboardLayout(dwThreadId);
     if (!Imm32CreateInputContext(hIMC, pIC, pClientImc, hNewKL, fSelect))
     {
-        pClientImc->hInputContext = LocalFree(pClientImc->hInputContext);
+        LocalUnlock(hIC);
+        pClientImc->hInputContext = LocalFree(hIC);
         goto Failure;
     }
 
 Success:
-    CtfImmTIMCreateInputContext(hIMC);
     RtlLeaveCriticalSection(&pClientImc->cs);
     InterlockedIncrement(&pClientImc->cLockObj);
     ImmUnlockClientImc(pClientImc);
@@ -1127,9 +1131,10 @@ BOOL WINAPI ImmSetActiveContext(HWND hWnd, HIMC hIMC, BOOL fActive)
     PCLIENTIMC pClientImc;
     LPINPUTCONTEXTDX pIC;
     PIMEDPI pImeDpi;
+    HIMC hOldIMC;
     HKL hKL;
     BOOL fOpen = FALSE;
-    DWORD dwConversion = 0, iShow = ISC_SHOWUIALL;
+    DWORD dwConversion = 0, dwShowFlags = ISC_SHOWUIALL;
     HWND hwndDefIME;
 
     TRACE("(%p, %p, %d)\n", hWnd, hIMC, fActive);
@@ -1142,7 +1147,7 @@ BOOL WINAPI ImmSetActiveContext(HWND hWnd, HIMC hIMC, BOOL fActive)
     if (!fActive)
     {
         if (pClientImc)
-            pClientImc->dwFlags &= ~CLIENTIMC_UNKNOWN4;
+            pClientImc->dwFlags &= ~CLIENTIMC_ACTIVE;
     }
     else if (hIMC)
     {
@@ -1157,10 +1162,10 @@ BOOL WINAPI ImmSetActiveContext(HWND hWnd, HIMC hIMC, BOOL fActive)
         }
 
         pIC->hWnd = hWnd;
-        pClientImc->dwFlags |= CLIENTIMC_UNKNOWN5;
+        pClientImc->dwFlags |= CLIENTIMC_ACTIVE;
 
         if (pIC->dwUIFlags & 2)
-            iShow = (ISC_SHOWUIGUIDELINE | ISC_SHOWUIALLCANDIDATEWINDOW);
+            dwShowFlags = (ISC_SHOWUIGUIDELINE | ISC_SHOWUIALLCANDIDATEWINDOW);
 
         fOpen = pIC->fOpen;
         dwConversion = pIC->fdwConversion;
@@ -1169,18 +1174,16 @@ BOOL WINAPI ImmSetActiveContext(HWND hWnd, HIMC hIMC, BOOL fActive)
     }
     else
     {
-        hIMC = ImmGetSaveContext(hWnd, 1);
-        pIC = (LPINPUTCONTEXTDX)ImmLockIMC(hIMC);
+        hOldIMC = ImmGetSaveContext(hWnd, 1);
+        pIC = (LPINPUTCONTEXTDX)ImmLockIMC(hOldIMC);
         if (pIC)
         {
             pIC->hWnd = hWnd;
-            ImmUnlockIMC(hIMC);
+            ImmUnlockIMC(hOldIMC);
         }
-        hIMC = NULL;
     }
 
     hKL = GetKeyboardLayout(0);
-
     if (IS_CICERO_MODE() && !IS_16BIT_MODE())
     {
         Imm32CiceroSetActiveContext(hIMC, fActive, hWnd, hKL);
@@ -1197,7 +1200,7 @@ BOOL WINAPI ImmSetActiveContext(HWND hWnd, HIMC hIMC, BOOL fActive)
 
     if (IsWindow(hWnd))
     {
-        SendMessageW(hWnd, WM_IME_SETCONTEXT, fActive, iShow);
+        SendMessageW(hWnd, WM_IME_SETCONTEXT, fActive, dwShowFlags);
         if (fActive)
             NtUserNotifyIMEStatus(hWnd, fOpen, dwConversion);
     }
@@ -1205,7 +1208,7 @@ BOOL WINAPI ImmSetActiveContext(HWND hWnd, HIMC hIMC, BOOL fActive)
     {
         hwndDefIME = ImmGetDefaultIMEWnd(NULL);
         if (hwndDefIME)
-            SendMessageW(hwndDefIME, WM_IME_SETCONTEXT, 0, iShow);
+            SendMessageW(hwndDefIME, WM_IME_SETCONTEXT, 0, dwShowFlags);
     }
 
     if (pClientImc)

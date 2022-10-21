@@ -88,8 +88,8 @@ BOOL APIENTRY Imm32CheckImcProcess(PIMC pIMC);
 LPVOID APIENTRY ImmLocalAlloc(DWORD dwFlags, DWORD dwBytes);
 #define ImmLocalFree(lpData) HeapFree(ghImmHeap, 0, (lpData))
 
-LPWSTR APIENTRY Imm32WideFromAnsi(LPCSTR pszA);
-LPSTR APIENTRY Imm32AnsiFromWide(LPCWSTR pszW);
+LPWSTR APIENTRY Imm32WideFromAnsi(UINT uCodePage, LPCSTR pszA);
+LPSTR APIENTRY Imm32AnsiFromWide(UINT uCodePage, LPCWSTR pszW);
 LONG APIENTRY IchWideFromAnsi(LONG cchAnsi, LPCSTR pchAnsi, UINT uCodePage);
 LONG APIENTRY IchAnsiFromWide(LONG cchWide, LPCWSTR pchWide, UINT uCodePage);
 PIMEDPI APIENTRY Imm32FindOrLoadImeDpi(HKL hKL);
@@ -153,10 +153,11 @@ HRESULT APIENTRY Imm32StrToUInt(LPCWSTR pszText, LPDWORD pdwValue, ULONG nBase);
 HRESULT APIENTRY Imm32UIntToStr(DWORD dwValue, ULONG nBase, LPWSTR pszBuff, USHORT cchBuff);
 BOOL APIENTRY Imm32LoadImeVerInfo(PIMEINFOEX pImeInfoEx);
 UINT APIENTRY Imm32GetImeLayout(PREG_IME pLayouts, UINT cLayouts);
-BOOL APIENTRY Imm32WriteImeLayout(HKL hKL, LPCWSTR pchFilePart, LPCWSTR pszLayout);
+BOOL APIENTRY Imm32WriteImeLayout(HKL hKL, LPCWSTR pchFilePart, LPCWSTR pszLayoutText);
 HKL APIENTRY Imm32AssignNewLayout(UINT cKLs, const REG_IME *pLayouts, WORD wLangID);
 BOOL APIENTRY Imm32CopyImeFile(LPWSTR pszOldFile, LPCWSTR pszNewFile);
 
+/* Win: PtiCurrent */
 static inline PTHREADINFO FASTCALL Imm32CurrentPti(VOID)
 {
     if (NtCurrentTeb()->Win32ThreadInfo == NULL)

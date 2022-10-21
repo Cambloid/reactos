@@ -655,13 +655,13 @@ ImmGetImeMenuItemsAW(HIMC hIMC, DWORD dwFlags, DWORD dwType, LPVOID lpImeParentM
         if (bTargetIsAnsi)
         {
             if (pNewParent)
-                Imm32ImeMenuWideToAnsi(pNewParent, lpImeParentMenu, CP_ACP);
+                Imm32ImeMenuWideToAnsi(pNewParent, lpImeParentMenu, pImeDpi->uCodePage);
 
             pItemW = pNewItems;
             pItemA = lpImeMenu;
             for (iItem = 0; iItem < ret; ++iItem, ++pItemW, ++pItemA)
             {
-                if (!Imm32ImeMenuWideToAnsi(pItemW, pItemA, CP_ACP))
+                if (!Imm32ImeMenuWideToAnsi(pItemW, pItemA, pImeDpi->uCodePage))
                 {
                     ret = 0;
                     break;
@@ -704,11 +704,11 @@ HKL WINAPI ImmInstallIMEA(LPCSTR lpszIMEFileName, LPCSTR lpszLayoutText)
 
     TRACE("(%s, %s)\n", debugstr_a(lpszIMEFileName), debugstr_a(lpszLayoutText));
 
-    pszFileNameW = Imm32WideFromAnsi(lpszIMEFileName);
+    pszFileNameW = Imm32WideFromAnsi(CP_ACP, lpszIMEFileName);
     if (!pszFileNameW)
         goto Quit;
 
-    pszLayoutTextW = Imm32WideFromAnsi(lpszLayoutText);
+    pszLayoutTextW = Imm32WideFromAnsi(CP_ACP, lpszLayoutText);
     if (!pszLayoutTextW)
         goto Quit;
 
@@ -887,11 +887,8 @@ ImmGetImeInfoEx(PIMEINFOEX pImeInfoEx, IMEINFOEXCLASS SearchType, PVOID pvSearch
         {
             if (!IS_IME_HKL(hKL))
             {
-                if (!CtfImmIsTextFrameServiceDisabled() ||
-                    !IS_CICERO_MODE() || IS_16BIT_MODE())
-                {
+                if (CtfImmIsTextFrameServiceDisabled() || !IS_CICERO_MODE() || IS_16BIT_MODE())
                     return FALSE;
-                }
             }
 
             SearchType = ImeInfoExKeyboardLayout;
@@ -1471,18 +1468,23 @@ BOOL WINAPI ImmGetCompositionWindow(HIMC hIMC, LPCOMPOSITIONFORM lpCompForm)
  */
 BOOL WINAPI ImmSetCompositionWindow(HIMC hIMC, LPCOMPOSITIONFORM lpCompForm)
 {
-    LPINPUTCONTEXT pIC;
+    LPINPUTCONTEXTDX pIC;
     HWND hWnd;
 
     if (Imm32IsCrossThreadAccess(hIMC))
         return FALSE;
 
-    pIC = ImmLockIMC(hIMC);
+    pIC = (LPINPUTCONTEXTDX)ImmLockIMC(hIMC);
     if (pIC == NULL)
         return FALSE;
 
     pIC->cfCompForm = *lpCompForm;
     pIC->fdwInit |= INIT_COMPFORM;
+
+    if (pIC->dwUIFlags & 0x8)
+        pIC->dwUIFlags &= ~0x8;
+    else
+        pIC->dwUIFlags &= ~0x2;
 
     hWnd = pIC->hWnd;
 
@@ -1575,9 +1577,8 @@ BOOL WINAPI ImmSetCompositionFontA(HIMC hIMC, LPLOGFONTA lplf)
     PCLIENTIMC pClientImc;
     BOOL bWide;
     LPINPUTCONTEXTDX pIC;
-    LCID lcid;
+    LANGID LangID;
     HWND hWnd;
-    PTEB pTeb;
 
     TRACE("(%p, %p)\n", hIMC, lplf);
 
@@ -1601,11 +1602,11 @@ BOOL WINAPI ImmSetCompositionFontA(HIMC hIMC, LPLOGFONTA lplf)
     if (pIC == NULL)
         return FALSE;
 
-    pTeb = NtCurrentTeb();
-    if (pTeb->Win32ClientInfo[2] < 0x400)
+    if (GetWin32ClientInfo()->dwExpWinVer < _WIN32_WINNT_NT4) /* old version (3.x)? */
     {
-        lcid = GetSystemDefaultLCID();
-        if (PRIMARYLANGID(lcid) == LANG_JAPANESE && !(pIC->dwUIFlags & 2) &&
+        LangID = LANGIDFROMLCID(GetSystemDefaultLCID());
+        if (PRIMARYLANGID(LangID) == LANG_JAPANESE &&
+            !(pIC->dwUIFlags & 2) &&
             pIC->cfCompForm.dwStyle != CFS_DEFAULT)
         {
             PostMessageA(pIC->hWnd, WM_IME_REPORT, IR_CHANGECONVERT, 0);
@@ -1633,8 +1634,7 @@ BOOL WINAPI ImmSetCompositionFontW(HIMC hIMC, LPLOGFONTW lplf)
     BOOL bWide;
     HWND hWnd;
     LPINPUTCONTEXTDX pIC;
-    PTEB pTeb;
-    LCID lcid;
+    LANGID LangID;
 
     TRACE("(%p, %p)\n", hIMC, lplf);
 
@@ -1658,11 +1658,10 @@ BOOL WINAPI ImmSetCompositionFontW(HIMC hIMC, LPLOGFONTW lplf)
     if (pIC == NULL)
         return FALSE;
 
-    pTeb = NtCurrentTeb();
-    if (pTeb->Win32ClientInfo[2] < 0x400)
+    if (GetWin32ClientInfo()->dwExpWinVer < _WIN32_WINNT_NT4) /* old version (3.x)? */
     {
-        lcid = GetSystemDefaultLCID();
-        if (PRIMARYLANGID(lcid) == LANG_JAPANESE &&
+        LangID = LANGIDFROMLCID(GetSystemDefaultLCID());
+        if (PRIMARYLANGID(LangID) == LANG_JAPANESE &&
             !(pIC->dwUIFlags & 2) &&
             pIC->cfCompForm.dwStyle != CFS_DEFAULT)
         {
@@ -1710,7 +1709,7 @@ ImmGetConversionListA(HKL hKL, HIMC hIMC, LPCSTR pSrc, LPCANDIDATELIST lpDst,
 
     if (pSrc)
     {
-        pszSrcW = Imm32WideFromAnsi(pSrc);
+        pszSrcW = Imm32WideFromAnsi(pImeDpi->uCodePage, pSrc);
         if (pszSrcW == NULL)
             goto Quit;
     }
@@ -1727,7 +1726,7 @@ ImmGetConversionListA(HKL hKL, HIMC hIMC, LPCSTR pSrc, LPCANDIDATELIST lpDst,
     if (cb == 0)
         goto Quit;
 
-    ret = CandidateListWideToAnsi(pCL, lpDst, dwBufLen, CP_ACP);
+    ret = CandidateListWideToAnsi(pCL, lpDst, dwBufLen, pImeDpi->uCodePage);
 
 Quit:
     ImmLocalFree(pszSrcW);
@@ -1765,7 +1764,7 @@ ImmGetConversionListW(HKL hKL, HIMC hIMC, LPCWSTR pSrc, LPCANDIDATELIST lpDst,
 
     if (pSrc)
     {
-        pszSrcA = Imm32AnsiFromWide(pSrc);
+        pszSrcA = Imm32AnsiFromWide(pImeDpi->uCodePage, pSrc);
         if (pszSrcA == NULL)
             goto Quit;
     }
@@ -1782,7 +1781,7 @@ ImmGetConversionListW(HKL hKL, HIMC hIMC, LPCWSTR pSrc, LPCANDIDATELIST lpDst,
     if (!cb)
         goto Quit;
 
-    ret = CandidateListAnsiToWide(pCL, lpDst, dwBufLen, CP_ACP);
+    ret = CandidateListAnsiToWide(pCL, lpDst, dwBufLen, pImeDpi->uCodePage);
 
 Quit:
     ImmLocalFree(pszSrcA);
@@ -1900,14 +1899,14 @@ BOOL WINAPI ImmConfigureIMEA(HKL hKL, HWND hWnd, DWORD dwMode, LPVOID lpData)
 
     if (pRegWordA->lpReading)
     {
-        RegWordW.lpReading = Imm32WideFromAnsi(pRegWordA->lpReading);
+        RegWordW.lpReading = Imm32WideFromAnsi(pImeDpi->uCodePage, pRegWordA->lpReading);
         if (!RegWordW.lpReading)
             goto Quit;
     }
 
     if (pRegWordA->lpWord)
     {
-        RegWordW.lpWord = Imm32WideFromAnsi(pRegWordA->lpWord);
+        RegWordW.lpWord = Imm32WideFromAnsi(pImeDpi->uCodePage, pRegWordA->lpWord);
         if (!RegWordW.lpWord)
             goto Quit;
     }
@@ -1954,14 +1953,14 @@ BOOL WINAPI ImmConfigureIMEW(HKL hKL, HWND hWnd, DWORD dwMode, LPVOID lpData)
 
     if (pRegWordW->lpReading)
     {
-        RegWordA.lpReading = Imm32AnsiFromWide(pRegWordW->lpReading);
+        RegWordA.lpReading = Imm32AnsiFromWide(pImeDpi->uCodePage, pRegWordW->lpReading);
         if (!RegWordA.lpReading)
             goto Quit;
     }
 
     if (pRegWordW->lpWord)
     {
-        RegWordA.lpWord = Imm32AnsiFromWide(pRegWordW->lpWord);
+        RegWordA.lpWord = Imm32AnsiFromWide(pImeDpi->uCodePage, pRegWordW->lpWord);
         if (!RegWordA.lpWord)
             goto Quit;
     }

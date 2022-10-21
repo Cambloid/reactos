@@ -42,6 +42,7 @@ Imm32UIntToStr(DWORD dwValue, ULONG nBase, LPWSTR pszBuff, USHORT cchBuff)
     return S_OK;
 }
 
+/* Win: CheckCountry */
 BOOL APIENTRY Imm32IsSystemJapaneseOrKorean(VOID)
 {
     LCID lcid = GetSystemDefaultLCID();
@@ -183,25 +184,25 @@ BOOL WINAPI Imm32IsImcAnsi(HIMC hIMC)
     return ret;
 }
 
-LPWSTR APIENTRY Imm32WideFromAnsi(LPCSTR pszA)
+LPWSTR APIENTRY Imm32WideFromAnsi(UINT uCodePage, LPCSTR pszA)
 {
     INT cch = lstrlenA(pszA);
     LPWSTR pszW = ImmLocalAlloc(0, (cch + 1) * sizeof(WCHAR));
     if (pszW == NULL)
         return NULL;
-    cch = MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, pszA, cch, pszW, cch + 1);
+    cch = MultiByteToWideChar(uCodePage, MB_PRECOMPOSED, pszA, cch, pszW, cch + 1);
     pszW[cch] = 0;
     return pszW;
 }
 
-LPSTR APIENTRY Imm32AnsiFromWide(LPCWSTR pszW)
+LPSTR APIENTRY Imm32AnsiFromWide(UINT uCodePage, LPCWSTR pszW)
 {
     INT cchW = lstrlenW(pszW);
     INT cchA = (cchW + 1) * sizeof(WCHAR);
     LPSTR pszA = ImmLocalAlloc(0, cchA);
     if (!pszA)
         return NULL;
-    cchA = WideCharToMultiByte(CP_ACP, 0, pszW, cchW, pszA, cchA, NULL, NULL);
+    cchA = WideCharToMultiByte(uCodePage, 0, pszW, cchW, pszA, cchA, NULL, NULL);
     pszA[cchA] = 0;
     return pszA;
 }
@@ -933,11 +934,11 @@ UINT APIENTRY Imm32GetImeLayout(PREG_IME pLayouts, UINT cLayouts)
 }
 
 // Win: WriteImeLayout
-BOOL APIENTRY Imm32WriteImeLayout(HKL hKL, LPCWSTR pchFilePart, LPCWSTR pszLayout)
+BOOL APIENTRY Imm32WriteImeLayout(HKL hKL, LPCWSTR pchFilePart, LPCWSTR pszLayoutText)
 {
     UINT iPreload;
     HKEY hkeyLayouts, hkeyIME, hkeyPreload;
-    WCHAR szImeKey[20], szPreloadNumber[20], szPreloadKey[20], szImeFileName[80];
+    WCHAR szImeKey[20], szPreloadNumber[20], szPreloadKey[20];
     DWORD cbData;
     LANGID LangID;
     LONG lError;
@@ -963,8 +964,8 @@ BOOL APIENTRY Imm32WriteImeLayout(HKL hKL, LPCWSTR pchFilePart, LPCWSTR pszLayou
         goto Failure;
 
     /* Write "Layout Text" */
-    cbData = (wcslen(pszLayout) + 1) * sizeof(WCHAR);
-    lError = RegSetValueExW(hkeyIME, L"Layout Text", 0, REG_SZ, (LPBYTE)pszLayout, cbData);
+    cbData = (wcslen(pszLayoutText) + 1) * sizeof(WCHAR);
+    lError = RegSetValueExW(hkeyIME, L"Layout Text", 0, REG_SZ, (LPBYTE)pszLayoutText, cbData);
     if (lError != ERROR_SUCCESS)
         goto Failure;
 
@@ -976,11 +977,10 @@ BOOL APIENTRY Imm32WriteImeLayout(HKL hKL, LPCWSTR pchFilePart, LPCWSTR pszLayou
         case LANG_KOREAN:   pszLayoutFile = L"kbdkor.dll"; break;
         default:            pszLayoutFile = L"kbdus.dll"; break;
     }
-    StringCchCopyW(szImeFileName, _countof(szImeFileName), pszLayoutFile);
 
     /* Write "Layout File" */
-    cbData = (wcslen(szImeFileName) + 1) * sizeof(WCHAR);
-    lError = RegSetValueExW(hkeyIME, L"Layout File", 0, REG_SZ, (LPBYTE)szImeFileName, cbData);
+    cbData = (wcslen(pszLayoutFile) + 1) * sizeof(WCHAR);
+    lError = RegSetValueExW(hkeyIME, L"Layout File", 0, REG_SZ, (LPBYTE)pszLayoutFile, cbData);
     if (lError != ERROR_SUCCESS)
         goto Failure;
 
