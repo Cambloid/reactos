@@ -1,17 +1,23 @@
 /*
- * COPYRIGHT:       See COPYING in the top level directory
- * PROJECT:         ReactOS kernel
- * FILE:            dll/ntdll/csr/connect.c
- * PURPOSE:         Routines for connecting and calling CSR
- * PROGRAMMER:      Alex Ionescu (alex@relsoft.net)
+ * PROJECT:     ReactOS Client/Server Runtime SubSystem
+ * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
+ * PURPOSE:     CSR Client Library - CSR connection and calling
+ * COPYRIGHT:   Copyright 2005-2013 Alex Ionescu <alex@relsoft.net>
+ *              Copyright 2012-2022 Hermès Bélusca-Maïto <hermes.belusca-maito@reactos.org>
  */
 
 /* INCLUDES *******************************************************************/
 
-#include <ntdll.h>
+#include "csrlib.h"
 
+#define NTOS_MODE_USER
+#include <ndk/ldrfuncs.h>
 #include <ndk/lpcfuncs.h>
-#include <csr/csrsrv.h>
+#include <ndk/mmfuncs.h>
+#include <ndk/obfuncs.h>
+#include <ndk/umfuncs.h>
+
+#include <csrsrv.h> // For CSR_CSRSS_SECTION_SIZE
 
 #define NDEBUG
 #include <debug.h>
@@ -25,18 +31,17 @@ ULONG_PTR CsrPortMemoryDelta;
 BOOLEAN InsideCsrProcess = FALSE;
 
 typedef NTSTATUS
-(NTAPI *PCSR_SERVER_API_ROUTINE)(IN PPORT_MESSAGE Request,
-                                 IN PPORT_MESSAGE Reply);
+(NTAPI *PCSR_SERVER_API_ROUTINE)(
+    _In_ PCSR_API_MESSAGE Request,
+    _Inout_ PCSR_API_MESSAGE Reply);
 
 PCSR_SERVER_API_ROUTINE CsrServerApiRoutine;
 
-#define UNICODE_PATH_SEP L"\\"
-
 /* FUNCTIONS ******************************************************************/
 
-NTSTATUS
-NTAPI
-CsrpConnectToServer(IN PWSTR ObjectDirectory)
+static NTSTATUS
+CsrpConnectToServer(
+    _In_ PCWSTR ObjectDirectory)
 {
     NTSTATUS Status;
     SIZE_T PortNameLength;
@@ -52,12 +57,6 @@ CsrpConnectToServer(IN PWSTR ObjectDirectory)
     ULONG ConnectionInfoLength = sizeof(ConnectionInfo);
 
     DPRINT("%s(%S)\n", __FUNCTION__, ObjectDirectory);
-
-    /* Binary compatibility with MS KERNEL32 */
-    if (NULL == ObjectDirectory)
-    {
-        ObjectDirectory = L"\\Windows";
-    }
 
     /* Calculate the total port name size */
     PortNameLength = ((wcslen(ObjectDirectory) + 1) * sizeof(WCHAR)) +
@@ -80,8 +79,8 @@ CsrpConnectToServer(IN PWSTR ObjectDirectory)
     }
 
     /* Create the name */
-    RtlAppendUnicodeToString(&PortName, ObjectDirectory );
-    RtlAppendUnicodeToString(&PortName, UNICODE_PATH_SEP);
+    RtlAppendUnicodeToString(&PortName, ObjectDirectory);
+    RtlAppendUnicodeToString(&PortName, L"\\");
     RtlAppendUnicodeToString(&PortName, CSR_PORT_NAME);
 
     /* Create a section for the port memory */
@@ -194,11 +193,12 @@ CsrpConnectToServer(IN PWSTR ObjectDirectory)
  */
 NTSTATUS
 NTAPI
-CsrClientConnectToServer(IN PWSTR ObjectDirectory,
-                         IN ULONG ServerId,
-                         IN PVOID ConnectionInfo,
-                         IN OUT PULONG ConnectionInfoSize,
-                         OUT PBOOLEAN ServerToServerCall)
+CsrClientConnectToServer(
+    _In_ PCWSTR ObjectDirectory,
+    _In_ ULONG ServerId,
+    _In_ PVOID ConnectionInfo,
+    _Inout_ PULONG ConnectionInfoSize,
+    _Out_ PBOOLEAN ServerToServerCall)
 {
     NTSTATUS Status;
     PIMAGE_NT_HEADERS NtHeader;
@@ -363,10 +363,11 @@ C_ASSERT((sizeof(TEST) - sizeof(TEST_EMBEDDED)) != FIELD_OFFSET(TEST, Three));
  */
 NTSTATUS
 NTAPI
-CsrClientCallServer(IN OUT PCSR_API_MESSAGE ApiMessage,
-                    IN OUT PCSR_CAPTURE_BUFFER CaptureBuffer OPTIONAL,
-                    IN CSR_API_NUMBER ApiNumber,
-                    IN ULONG DataLength)
+CsrClientCallServer(
+    _Inout_ PCSR_API_MESSAGE ApiMessage,
+    _Inout_opt_ PCSR_CAPTURE_BUFFER CaptureBuffer,
+    _In_ CSR_API_NUMBER ApiNumber,
+    _In_ ULONG DataLength)
 {
     NTSTATUS Status;
 
@@ -379,10 +380,13 @@ CsrClientCallServer(IN OUT PCSR_API_MESSAGE ApiMessage,
 
     /* Fill out the Port Message Header */
     ApiMessage->Header.u2.ZeroInit = 0;
-    ApiMessage->Header.u1.s1.TotalLength = (CSHORT)DataLength +
-        sizeof(CSR_API_MESSAGE) - sizeof(ApiMessage->Data); // FIELD_OFFSET(CSR_API_MESSAGE, Data) + DataLength;
+    /* DataLength = user_data_size + anything between
+     * header and data, including intermediate padding */
     ApiMessage->Header.u1.s1.DataLength = (CSHORT)DataLength +
-        FIELD_OFFSET(CSR_API_MESSAGE, Data) - sizeof(ApiMessage->Header); // ApiMessage->Header.u1.s1.TotalLength - sizeof(PORT_MESSAGE);
+        FIELD_OFFSET(CSR_API_MESSAGE, Data) - sizeof(ApiMessage->Header);
+    /* TotalLength = header_size + DataLength + any structure trailing padding */
+    ApiMessage->Header.u1.s1.TotalLength = (CSHORT)DataLength +
+        sizeof(CSR_API_MESSAGE) - sizeof(ApiMessage->Data);
 
     /* Fill out the CSR Header */
     ApiMessage->ApiNumber = ApiNumber;
@@ -480,8 +484,7 @@ CsrClientCallServer(IN OUT PCSR_API_MESSAGE ApiMessage,
         ApiMessage->Header.ClientId = NtCurrentTeb()->ClientId;
 
         /* Do a direct call */
-        Status = CsrServerApiRoutine(&ApiMessage->Header,
-                                     &ApiMessage->Header);
+        Status = CsrServerApiRoutine(ApiMessage, ApiMessage);
 
         /* Check for success */
         if (!NT_SUCCESS(Status))
