@@ -1067,9 +1067,6 @@ IntLoadSystemFonts(VOID)
     }
 }
 
-static FT_Error
-IntRequestFontSize(PDC dc, PFONTGDI FontGDI, LONG lfWidth, LONG lfHeight);
-
 /* NOTE: If nIndex < 0 then return the number of charsets. */
 UINT FASTCALL IntGetCharSet(INT nIndex, FT_ULong CodePageRange1)
 {
@@ -1348,10 +1345,6 @@ IntGdiLoadFontsFromMemory(PGDI_LOAD_FONT pLoadFont,
            Face->style_name ? Face->style_name : "<NULL>");
     DPRINT("Num glyphs: %d\n", Face->num_glyphs);
     DPRINT("CharSet: %d\n", FontGDI->CharSet);
-
-    IntLockFreeType();
-    IntRequestFontSize(NULL, FontGDI, 0, 0);
-    IntUnLockFreeType();
 
     /* Add this font resource to the font table */
     Entry->Font = FontGDI;
@@ -3512,6 +3505,13 @@ IntRequestFontSize(PDC dc, PFONTGDI FontGDI, LONG lfWidth, LONG lfHeight)
     FT_WinFNT_HeaderRec WinFNT;
     LONG Ascent, Descent, Sum, EmHeight64;
 
+    if (FontGDI->Magic == FONTGDI_MAGIC &&
+        FontGDI->lfHeight == lfHeight &&
+        FontGDI->lfWidth == lfWidth)
+    {
+        return 0; /* Cached */
+    }
+
     lfWidth = abs(lfWidth);
     if (lfHeight == 0)
     {
@@ -3550,7 +3550,9 @@ IntRequestFontSize(PDC dc, PFONTGDI FontGDI, LONG lfWidth, LONG lfHeight)
         FontGDI->EmHeight           = FontGDI->tmHeight - FontGDI->tmInternalLeading;
         FontGDI->EmHeight = max(FontGDI->EmHeight, 1);
         FontGDI->EmHeight = min(FontGDI->EmHeight, USHORT_MAX);
-        FontGDI->Magic = FONTGDI_MAGIC;
+        FontGDI->Magic              = FONTGDI_MAGIC;
+        FontGDI->lfWidth            = lfWidth;
+        FontGDI->lfHeight           = lfHeight;
         return 0;
     }
 
@@ -3607,6 +3609,8 @@ IntRequestFontSize(PDC dc, PFONTGDI FontGDI, LONG lfWidth, LONG lfHeight)
     FontGDI->EmHeight = max(FontGDI->EmHeight, 1);
     FontGDI->EmHeight = min(FontGDI->EmHeight, USHORT_MAX);
     FontGDI->Magic = FONTGDI_MAGIC;
+    FontGDI->lfWidth = lfWidth;
+    FontGDI->lfHeight = lfHeight;
 
     EmHeight64 = (FontGDI->EmHeight << 6);
 
@@ -5150,22 +5154,17 @@ IntFontType(PFONTGDI Font)
 }
 
 static BOOL
-MatchFontName(PSHARED_FACE SharedFace, LPCWSTR lfFaceName, FT_UShort NameID, FT_UShort LangID)
+MatchFontName(PSHARED_FACE SharedFace, PUNICODE_STRING Name1, FT_UShort NameID, FT_UShort LangID)
 {
     NTSTATUS Status;
-    UNICODE_STRING Name1, Name2;
-
-    if (lfFaceName[0] == UNICODE_NULL)
-        return FALSE;
-
-    RtlInitUnicodeString(&Name1, lfFaceName);
+    UNICODE_STRING Name2;
 
     RtlInitUnicodeString(&Name2, NULL);
     Status = IntGetFontLocalizedName(&Name2, SharedFace, NameID, LangID);
 
     if (NT_SUCCESS(Status))
     {
-        if (RtlCompareUnicodeString(&Name1, &Name2, TRUE) == 0)
+        if (RtlCompareUnicodeString(Name1, &Name2, TRUE) == 0)
         {
             RtlFreeUnicodeString(&Name2);
             return TRUE;
@@ -5180,15 +5179,22 @@ MatchFontName(PSHARED_FACE SharedFace, LPCWSTR lfFaceName, FT_UShort NameID, FT_
 static BOOL
 MatchFontNames(PSHARED_FACE SharedFace, LPCWSTR lfFaceName)
 {
-    if (MatchFontName(SharedFace, lfFaceName, TT_NAME_ID_FONT_FAMILY, LANG_ENGLISH) ||
-        MatchFontName(SharedFace, lfFaceName, TT_NAME_ID_FULL_NAME, LANG_ENGLISH))
+    UNICODE_STRING Name1;
+
+    if (lfFaceName[0] == UNICODE_NULL)
+        return FALSE;
+
+    RtlInitUnicodeString(&Name1, lfFaceName);
+
+    if (MatchFontName(SharedFace, &Name1, TT_NAME_ID_FONT_FAMILY, LANG_ENGLISH) ||
+        MatchFontName(SharedFace, &Name1, TT_NAME_ID_FULL_NAME, LANG_ENGLISH))
     {
         return TRUE;
     }
     if (PRIMARYLANGID(gusLanguageID) != LANG_ENGLISH)
     {
-        if (MatchFontName(SharedFace, lfFaceName, TT_NAME_ID_FONT_FAMILY, gusLanguageID) ||
-            MatchFontName(SharedFace, lfFaceName, TT_NAME_ID_FULL_NAME, gusLanguageID))
+        if (MatchFontName(SharedFace, &Name1, TT_NAME_ID_FONT_FAMILY, gusLanguageID) ||
+            MatchFontName(SharedFace, &Name1, TT_NAME_ID_FULL_NAME, gusLanguageID))
         {
             return TRUE;
         }
@@ -5262,10 +5268,6 @@ TextIntRealizeFont(HFONT FontHandle, PTEXTOBJ pTextObj)
         UNICODE_STRING Name;
         PFONTGDI FontGdi = ObjToGDI(TextObj->Font, FONT);
         PSHARED_FACE SharedFace = FontGdi->SharedFace;
-
-        IntLockFreeType();
-        IntRequestFontSize(NULL, FontGdi, pLogFont->lfWidth, pLogFont->lfHeight);
-        IntUnLockFreeType();
 
         TextObj->TextFace[0] = UNICODE_NULL;
         if (MatchFontNames(SharedFace, SubstitutedLogFont.lfFaceName))
