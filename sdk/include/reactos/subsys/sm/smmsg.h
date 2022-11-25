@@ -159,9 +159,9 @@ typedef struct _SB_CREATE_SESSION_MSG
 {
     ULONG SessionId;
     RTL_USER_PROCESS_INFORMATION ProcessInfo;
-    PVOID Unknown;
-    ULONG MuSessionId;
-    CLIENT_ID ClientId;
+    PVOID Reserved;
+    ULONG DbgSessionId;
+    CLIENT_ID DbgUiClientId;
 } SB_CREATE_SESSION_MSG, *PSB_CREATE_SESSION_MSG;
 #ifndef _WIN64
 C_ASSERT(sizeof(SB_CREATE_SESSION_MSG) == 0x58);
@@ -211,6 +211,10 @@ C_ASSERT(sizeof(SB_CREATE_PROCESS_MSG) == 0x18);
 C_ASSERT(sizeof(SB_CREATE_PROCESS_MSG) == 0x28);
 #endif
 
+#ifdef CreateProcess
+#undef CreateProcess
+#endif
+
 //
 // When the server connects to a client, this structure is exchanged
 //
@@ -239,7 +243,7 @@ typedef struct _SB_API_MSG
                 SB_TERMINATE_SESSION_MSG TerminateSession;
                 SB_FOREIGN_SESSION_COMPLETE_MSG ForeignSessionComplete;
                 SB_CREATE_PROCESS_MSG CreateProcess;
-            };
+            } u;
         };
     };
 } SB_API_MSG, *PSB_API_MSG;

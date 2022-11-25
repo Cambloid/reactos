@@ -562,7 +562,7 @@ DWORD FASTCALL UserBuildHimcList(PTHREADINFO pti, DWORD dwCount, HIMC *phList)
     }
     else
     {
-        for (pti = GetW32ThreadInfo()->ppi->ptiList; pti; pti = pti->ptiSibling)
+        for (pti = gptiCurrent->ppi->ptiList; pti; pti = pti->ptiSibling)
         {
             for (pIMC = pti->spDefaultImc; pIMC; pIMC = pIMC->pImcNext)
             {
@@ -716,7 +716,7 @@ NtUserBuildHimcList(DWORD dwThreadId, DWORD dwCount, HIMC *phList, LPDWORD pdwCo
 
     if (dwThreadId == 0)
     {
-        pti = GetW32ThreadInfo();
+        pti = gptiCurrent;
     }
     else if (dwThreadId == INVALID_THREAD_ID)
     {
@@ -2393,6 +2393,13 @@ BOOL FASTCALL IntBroadcastImeShowStatusChange(PWND pImeWnd, BOOL bShow)
     gfIMEShowStatus = bShow;
     IntNotifyImeShowStatus(pImeWnd);
     return TRUE;
+}
+
+/* Win: xxxCheckImeShowStatusInThread */
+VOID FASTCALL IntCheckImeShowStatusInThread(PWND pImeWnd)
+{
+    if (IS_IMM_MODE() && !(pImeWnd->state2 & WNDS2_INDESTROY))
+        IntCheckImeShowStatus(pImeWnd, pImeWnd->head.pti);
 }
 
 /* EOF */
