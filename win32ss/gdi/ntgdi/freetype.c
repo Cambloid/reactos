@@ -43,7 +43,7 @@
 
 /* Is bold emulation necessary? */
 #define EMUBOLD_NEEDED(original, request) \
-    ((request) != FW_DONTCARE) && ((request) - (original) >= FW_BOLD - FW_MEDIUM)
+    (((request) != FW_DONTCARE) && ((request) - (original) >= FW_BOLD - FW_MEDIUM))
 
 extern const MATRIX gmxWorldToDeviceDefault;
 extern const MATRIX gmxWorldToPageDefault;
@@ -280,7 +280,7 @@ RemoveCacheEntries(FT_Face Face)
         FontEntry = CONTAINING_RECORD(CurrentEntry, FONT_CACHE_ENTRY, ListEntry);
         NextEntry = CurrentEntry->Flink;
 
-        if (FontEntry->Face == Face)
+        if (FontEntry->Hashed.Face == Face)
         {
             RemoveCachedEntry(FontEntry);
         }
@@ -703,37 +703,12 @@ InitFontSupport(VOID)
     return TRUE;
 }
 
-LONG FASTCALL IntWidthMatrix(FT_Face face, FT_Matrix *pmat, LONG lfWidth)
+static LONG IntNormalizeAngle(LONG nTenthsOfDegrees)
 {
-    LONG tmAveCharWidth;
-    TT_OS2 *pOS2;
-    FT_Fixed XScale;
-
-    *pmat = identityMat;
-
-    if (lfWidth == 0)
-        return 0;
-
-    ASSERT_FREETYPE_LOCK_HELD();
-    pOS2 = (TT_OS2 *)FT_Get_Sfnt_Table(face, FT_SFNT_OS2);
-    if (!pOS2)
-        return 0;
-
-    XScale = face->size->metrics.x_scale;
-    tmAveCharWidth = (FT_MulFix(pOS2->xAvgCharWidth, XScale) + 32) >> 6;
-    if (tmAveCharWidth == 0)
-    {
-        tmAveCharWidth = 1;
-    }
-
-    if (lfWidth == tmAveCharWidth)
-        return 0;
-
-    pmat->xx = INT_TO_FIXED(lfWidth) / tmAveCharWidth;
-    pmat->xy = 0;
-    pmat->yx = 0;
-    pmat->yy = INT_TO_FIXED(1);
-    return lfWidth;
+    nTenthsOfDegrees %= 360 * 10;
+    if (nTenthsOfDegrees >= 0)
+        return nTenthsOfDegrees;
+    return nTenthsOfDegrees + 360 * 10;
 }
 
 VOID FASTCALL IntEscapeMatrix(FT_Matrix *pmat, LONG lfEscapement)
@@ -2059,7 +2034,7 @@ TextIntCreateFontIndirect(CONST LPLOGFONTW lf, HFONT *NewFont)
  *   TRUE on success, FALSE on failure.
  *
  */
-static BOOLEAN APIENTRY
+static BOOLEAN
 IntTranslateCharsetInfo(PDWORD Src, /* [in]
                          if flags == TCI_SRCFONTSIG: pointer to fsCsb of a FONTSIGNATURE
                          if flags == TCI_SRCCHARSET: a character set value
@@ -2188,12 +2163,13 @@ FillTM(TEXTMETRICW *TM, PFONTGDI FontGDI,
                                     - ((Ascent + Descent)
                                        - (pHori->Ascender - pHori->Descender)),
                                     YScale) + 32) >> 6);
+    if (FontGDI->lfWidth != 0)
+        TM->tmAveCharWidth = FontGDI->lfWidth;
+    else
+        TM->tmAveCharWidth = (FT_MulFix(pOS2->xAvgCharWidth, XScale) + 32) >> 6;
 
-    TM->tmAveCharWidth = (FT_MulFix(pOS2->xAvgCharWidth, XScale) + 32) >> 6;
     if (TM->tmAveCharWidth == 0)
-    {
         TM->tmAveCharWidth = 1;
-    }
 
     /* Correct forumla to get the maxcharwidth from unicode and ansi font */
     TM->tmMaxCharWidth = (FT_MulFix(Face->max_advance_width, XScale) + 32) >> 6;
@@ -3112,16 +3088,27 @@ ftGdiGetRasterizerCaps(LPRASTERIZER_STATUS lprs)
     return FALSE;
 }
 
-FT_BitmapGlyph APIENTRY
-ftGdiGlyphCacheGet(
-    FT_Face Face,
-    INT GlyphIndex,
-    INT Height,
-    FT_Render_Mode RenderMode,
-    const FT_Matrix *pmatTransform)
+static DWORD
+IntGetHash(IN LPCVOID pv, IN DWORD cdw)
+{
+    DWORD dwHash = cdw;
+    const DWORD *pdw = pv;
+
+    while (cdw-- > 0)
+    {
+        dwHash *= 3;
+        dwHash ^= *pdw++;
+    }
+
+    return dwHash;
+}
+
+static FT_BitmapGlyph
+ftGdiGlyphCacheGet(IN const FONT_CACHE_ENTRY *pCache)
 {
     PLIST_ENTRY CurrentEntry;
     PFONT_CACHE_ENTRY FontEntry;
+    DWORD dwHash = pCache->dwHash;
 
     ASSERT_FREETYPE_LOCK_HELD();
 
@@ -3130,12 +3117,17 @@ ftGdiGlyphCacheGet(
          CurrentEntry = CurrentEntry->Flink)
     {
         FontEntry = CONTAINING_RECORD(CurrentEntry, FONT_CACHE_ENTRY, ListEntry);
-        if ((FontEntry->Face == Face) &&
-            (FontEntry->GlyphIndex == GlyphIndex) &&
-            (FontEntry->Height == Height) &&
-            (FontEntry->RenderMode == RenderMode) &&
-            (memcmp(&FontEntry->matTransform, pmatTransform, sizeof(*pmatTransform)) == 0))
+        if (FontEntry->dwHash == dwHash &&
+            FontEntry->Hashed.GlyphIndex == pCache->Hashed.GlyphIndex &&
+            FontEntry->Hashed.Face == pCache->Hashed.Face &&
+            FontEntry->Hashed.lfHeight == pCache->Hashed.lfHeight &&
+            FontEntry->Hashed.lfWidth == pCache->Hashed.lfWidth &&
+            FontEntry->Hashed.AspectValue == pCache->Hashed.AspectValue &&
+            memcmp(&FontEntry->Hashed.matTransform, &pCache->Hashed.matTransform,
+                   sizeof(FT_Matrix)) == 0)
+        {
             break;
+        }
     }
 
     if (CurrentEntry == &g_FontCacheListHead)
@@ -3149,7 +3141,7 @@ ftGdiGlyphCacheGet(
 }
 
 /* no cache */
-FT_BitmapGlyph APIENTRY
+static FT_BitmapGlyph
 ftGdiGlyphSet(
     FT_Face Face,
     FT_GlyphSlot GlyphSlot,
@@ -3159,6 +3151,8 @@ ftGdiGlyphSet(
     INT error;
     FT_Bitmap AlignedBitmap;
     FT_BitmapGlyph BitmapGlyph;
+
+    ASSERT_FREETYPE_LOCK_HELD();
 
     error = FT_Get_Glyph(GlyphSlot, &Glyph);
     if (error)
@@ -3190,14 +3184,10 @@ ftGdiGlyphSet(
     return BitmapGlyph;
 }
 
-FT_BitmapGlyph APIENTRY
+static FT_BitmapGlyph
 ftGdiGlyphCacheSet(
-    FT_Face Face,
-    INT GlyphIndex,
-    INT Height,
-    const FT_Matrix *pmatTransform,
-    FT_GlyphSlot GlyphSlot,
-    FT_Render_Mode RenderMode)
+    IN OUT PFONT_CACHE_ENTRY Cache,
+    IN FT_GlyphSlot GlyphSlot)
 {
     FT_Glyph GlyphCopy;
     INT error;
@@ -3214,7 +3204,7 @@ ftGdiGlyphCacheSet(
         return NULL;
     };
 
-    error = FT_Glyph_To_Bitmap(&GlyphCopy, RenderMode, 0, 1);
+    error = FT_Glyph_To_Bitmap(&GlyphCopy, Cache->Hashed.Aspect.RenderMode, 0, 1);
     if (error)
     {
         FT_Done_Glyph(GlyphCopy);
@@ -3244,12 +3234,9 @@ ftGdiGlyphCacheSet(
     FT_Bitmap_Done(GlyphSlot->library, &BitmapGlyph->bitmap);
     BitmapGlyph->bitmap = AlignedBitmap;
 
-    NewEntry->GlyphIndex = GlyphIndex;
-    NewEntry->Face = Face;
     NewEntry->BitmapGlyph = BitmapGlyph;
-    NewEntry->Height = Height;
-    NewEntry->RenderMode = RenderMode;
-    NewEntry->matTransform = *pmatTransform;
+    NewEntry->dwHash = Cache->dwHash;
+    NewEntry->Hashed = Cache->Hashed;
 
     InsertHeadList(&g_FontCacheListHead, &NewEntry->ListEntry);
     if (++g_FontCacheNumEntries > MAX_FONT_CACHE)
@@ -3468,7 +3455,7 @@ IntRequestFontSize(PDC dc, PFONTGDI FontGDI, LONG lfWidth, LONG lfHeight)
     TT_OS2 *pOS2;
     TT_HoriHeader *pHori;
     FT_WinFNT_HeaderRec WinFNT;
-    LONG Ascent, Descent, Sum, EmHeight;
+    LONG Ascent, Descent, Sum, EmHeight, Width64;
 
     lfWidth = abs(lfWidth);
     if (lfHeight == 0)
@@ -3487,8 +3474,12 @@ IntRequestFontSize(PDC dc, PFONTGDI FontGDI, LONG lfWidth, LONG lfHeight)
     if (lfHeight == -1)
         lfHeight = -2;
 
-    if (FontGDI->Magic == FONTGDI_MAGIC && FontGDI->lfHeight == lfHeight)
+    if (FontGDI->Magic == FONTGDI_MAGIC &&
+        FontGDI->lfHeight == lfHeight &&
+        FontGDI->lfWidth == lfWidth)
+    {
         return 0; /* Cached */
+    }
 
     ASSERT_FREETYPE_LOCK_HELD();
     pOS2 = (TT_OS2 *)FT_Get_Sfnt_Table(face, FT_SFNT_OS2);
@@ -3510,6 +3501,7 @@ IntRequestFontSize(PDC dc, PFONTGDI FontGDI, LONG lfWidth, LONG lfHeight)
         FontGDI->tmInternalLeading  = WinFNT.internal_leading;
         FontGDI->Magic              = FONTGDI_MAGIC;
         FontGDI->lfHeight           = lfHeight;
+        FontGDI->lfWidth            = lfWidth;
         return 0;
     }
 
@@ -3564,13 +3556,19 @@ IntRequestFontSize(PDC dc, PFONTGDI FontGDI, LONG lfWidth, LONG lfHeight)
 
     FontGDI->Magic = FONTGDI_MAGIC;
     FontGDI->lfHeight = lfHeight;
+    FontGDI->lfWidth = lfWidth;
 
     EmHeight = FontGDI->tmHeight - FontGDI->tmInternalLeading;
     EmHeight = max(EmHeight, 1);
     EmHeight = min(EmHeight, USHORT_MAX);
 
+    if (pOS2 && lfWidth > 0)
+        Width64 = FT_MulDiv(lfWidth, face->units_per_EM, pOS2->xAvgCharWidth) << 6;
+    else
+        Width64 = 0;
+
     req.type           = FT_SIZE_REQUEST_TYPE_NOMINAL;
-    req.width          = 0;
+    req.width          = Width64;
     req.height         = (EmHeight << 6);
     req.horiResolution = 0;
     req.vertResolution = 0;
@@ -3795,7 +3793,7 @@ ftGdiGetGlyphOutline(
     IntLockFreeType();
     TextIntUpdateSize(dc, TextObj, FontGDI, FALSE);
     FtMatrixFromMx(&mat, DC_pmxWorldToDevice(dc));
-    FT_Set_Transform(ft_face, &mat, 0);
+    FT_Set_Transform(ft_face, &mat, NULL);
 
     TEXTOBJ_UnlockText(TextObj);
 
@@ -4197,58 +4195,55 @@ ftGdiGetGlyphOutline(
     return needed;
 }
 
-FT_BitmapGlyph
-APIENTRY
+static FT_BitmapGlyph
 ftGdiGetRealGlyph(
-    FT_Face face,
-    INT glyph_index,
-    LONG lfHeight,
-    FT_Render_Mode RenderMode,
-    const FT_Matrix *pmat,
-    BOOL EmuBold,
-    BOOL EmuItalic)
+    IN OUT PFONT_CACHE_ENTRY Cache)
 {
     INT error;
     FT_GlyphSlot glyph;
     FT_BitmapGlyph realglyph;
 
-    if (EmuBold || EmuItalic)
+    ASSERT_FREETYPE_LOCK_HELD();
+
+    if (Cache->Hashed.Aspect.EmuBoldItalic)
     {
-        error = FT_Load_Glyph(face, glyph_index, FT_LOAD_NO_BITMAP);
+        error = FT_Load_Glyph(Cache->Hashed.Face, Cache->Hashed.GlyphIndex, FT_LOAD_NO_BITMAP);
+        if (error)
+        {
+            DPRINT1("WARNING: Failed to load and render glyph! [index: %d]\n",
+                    Cache->Hashed.GlyphIndex);
+            return NULL;
+        }
+
+        glyph = Cache->Hashed.Face->glyph;
+
+        if (Cache->Hashed.Aspect.Emu.Bold)
+            FT_GlyphSlot_Embolden(glyph);
+        if (Cache->Hashed.Aspect.Emu.Italic)
+            FT_GlyphSlot_Oblique(glyph);
+        realglyph = ftGdiGlyphSet(Cache->Hashed.Face, glyph, Cache->Hashed.Aspect.RenderMode);
     }
     else
     {
-        realglyph = ftGdiGlyphCacheGet(face, glyph_index, lfHeight,
-                                       RenderMode, pmat);
+        Cache->dwHash = IntGetHash(&Cache->Hashed, sizeof(Cache->Hashed) / sizeof(DWORD));
+
+        realglyph = ftGdiGlyphCacheGet(Cache);
         if (realglyph)
             return realglyph;
 
-        error = FT_Load_Glyph(face, glyph_index, FT_LOAD_DEFAULT);
-    }
+        error = FT_Load_Glyph(Cache->Hashed.Face, Cache->Hashed.GlyphIndex, FT_LOAD_DEFAULT);
+        if (error)
+        {
+            DPRINT1("WARNING: Failed to load and render glyph! [index: %d]\n", Cache->Hashed.GlyphIndex);
+            return NULL;
+        }
 
-    if (error)
-    {
-        DPRINT1("WARNING: Failed to load and render glyph! [index: %d]\n", glyph_index);
-        return NULL;
-    }
-
-    glyph = face->glyph;
-    if (EmuBold || EmuItalic)
-    {
-        if (EmuBold)
-            FT_GlyphSlot_Embolden(glyph);
-        if (EmuItalic)
-            FT_GlyphSlot_Oblique(glyph);
-        realglyph = ftGdiGlyphSet(face, glyph, RenderMode);
-    }
-    else
-    {
-        realglyph = ftGdiGlyphCacheSet(face, glyph_index, lfHeight,
-                                       pmat, glyph, RenderMode);
+        glyph = Cache->Hashed.Face->glyph;
+        realglyph = ftGdiGlyphCacheSet(Cache, glyph);
     }
 
     if (!realglyph)
-        DPRINT1("Failed to render glyph! [index: %d]\n", glyph_index);
+        DPRINT1("Failed to render glyph! [index: %d]\n", Cache->Hashed.GlyphIndex);
 
     return realglyph;
 }
@@ -4266,52 +4261,52 @@ TextIntGetTextExtentPoint(PDC dc,
                           FLONG fl)
 {
     PFONTGDI FontGDI;
-    FT_Face face;
     FT_BitmapGlyph realglyph;
-    INT glyph_index, i, previous;
+    INT glyph_index, i, previous, nTenthsOfDegrees;
     ULONGLONG TotalWidth64 = 0;
-    FT_Render_Mode RenderMode;
-    FT_Matrix mat;
-    PMATRIX pmxWorldToDevice;
     LOGFONTW *plf;
-    BOOL use_kerning, EmuBold, EmuItalic;
+    BOOL use_kerning, bVerticalWriting;
     LONG ascender, descender;
+    FONT_CACHE_ENTRY Cache;
 
     FontGDI = ObjToGDI(TextObj->Font, FONT);
 
-    face = FontGDI->SharedFace->Face;
+    Cache.Hashed.Face = FontGDI->SharedFace->Face;
     if (NULL != Fit)
     {
         *Fit = 0;
     }
 
-    IntLockFreeType();
-
-    TextIntUpdateSize(dc, TextObj, FontGDI, FALSE);
-
     plf = &TextObj->logfont.elfEnumLogfontEx.elfLogFont;
-    EmuBold = EMUBOLD_NEEDED(FontGDI->OriginalWeight, plf->lfWeight);
-    EmuItalic = (plf->lfItalic && !FontGDI->OriginalItalic);
+    Cache.Hashed.lfHeight = plf->lfHeight;
+    Cache.Hashed.lfWidth = plf->lfWidth;
+    Cache.Hashed.Aspect.Emu.Bold = EMUBOLD_NEEDED(FontGDI->OriginalWeight, plf->lfWeight);
+    Cache.Hashed.Aspect.Emu.Italic = (plf->lfItalic && !FontGDI->OriginalItalic);
+
+    // Check vertical writing (tategaki)
+    nTenthsOfDegrees = IntNormalizeAngle(plf->lfEscapement - plf->lfOrientation);
+    bVerticalWriting = ((nTenthsOfDegrees == 90 * 10) || (nTenthsOfDegrees == 270 * 10));
 
     if (IntIsFontRenderingEnabled())
-        RenderMode = IntGetFontRenderMode(plf);
+        Cache.Hashed.Aspect.RenderMode = (BYTE)IntGetFontRenderMode(plf);
     else
-        RenderMode = FT_RENDER_MODE_MONO;
+        Cache.Hashed.Aspect.RenderMode = (BYTE)FT_RENDER_MODE_MONO;
 
-    /* Get the DC's world-to-device transformation matrix */
-    pmxWorldToDevice = DC_pmxWorldToDevice(dc);
-    FtMatrixFromMx(&mat, pmxWorldToDevice);
-    FT_Set_Transform(face, &mat, 0);
+    // NOTE: GetTextExtentPoint32 simply ignores lfEscapement and XFORM.
+    IntLockFreeType();
+    TextIntUpdateSize(dc, TextObj, FontGDI, FALSE);
+    Cache.Hashed.matTransform = identityMat;
+    FT_Set_Transform(Cache.Hashed.Face, NULL, NULL);
 
-    use_kerning = FT_HAS_KERNING(face);
+    use_kerning = FT_HAS_KERNING(Cache.Hashed.Face);
     previous = 0;
 
     for (i = 0; i < Count; i++)
     {
-        glyph_index = get_glyph_index_flagged(face, *String, GTEF_INDICES, fl);
+        glyph_index = get_glyph_index_flagged(Cache.Hashed.Face, *String, GTEF_INDICES, fl);
+        Cache.Hashed.GlyphIndex = glyph_index;
 
-        realglyph = ftGdiGetRealGlyph(face, glyph_index, plf->lfHeight, RenderMode,
-                                      &mat, EmuBold, EmuItalic);
+        realglyph = ftGdiGetRealGlyph(&Cache);
         if (!realglyph)
             break;
 
@@ -4319,7 +4314,7 @@ TextIntGetTextExtentPoint(PDC dc,
         if (use_kerning && previous && glyph_index)
         {
             FT_Vector delta;
-            FT_Get_Kerning(face, previous, glyph_index, 0, &delta);
+            FT_Get_Kerning(Cache.Hashed.Face, previous, glyph_index, 0, &delta);
             TotalWidth64 += delta.x;
         }
 
@@ -4335,7 +4330,7 @@ TextIntGetTextExtentPoint(PDC dc,
         }
 
         /* Bold and italic do not use the cache */
-        if (EmuBold || EmuItalic)
+        if (Cache.Hashed.Aspect.EmuBoldItalic)
         {
             FT_Done_Glyph((FT_Glyph)realglyph);
         }
@@ -4348,8 +4343,16 @@ TextIntGetTextExtentPoint(PDC dc,
     descender = FontGDI->tmDescent; /* Units below baseline */
     IntUnLockFreeType();
 
-    Size->cx = (TotalWidth64 + 32) >> 6;
-    Size->cy = ascender + descender;
+    if (bVerticalWriting)
+    {
+        Size->cx = ascender + descender;
+        Size->cy = (TotalWidth64 + 32) >> 6;
+    }
+    else
+    {
+        Size->cx = (TotalWidth64 + 32) >> 6;
+        Size->cy = ascender + descender;
+    }
 
     return TRUE;
 }
@@ -4553,7 +4556,6 @@ ftGdiGetTextMetricsW(
     ULONG Error;
     NTSTATUS Status = STATUS_SUCCESS;
     LOGFONTW *plf;
-    FT_Matrix mat;
 
     if (!ptmwi)
     {
@@ -4576,10 +4578,11 @@ ftGdiGetTextMetricsW(
 
         Face = FontGDI->SharedFace->Face;
 
+        // NOTE: GetTextMetrics simply ignores lfEscapement and XFORM.
         IntLockFreeType();
         Error = IntRequestFontSize(dc, FontGDI, plf->lfWidth, plf->lfHeight);
-        FtMatrixFromMx(&mat, DC_pmxWorldToDevice(dc));
-        FT_Set_Transform(Face, &mat, 0);
+        FT_Set_Transform(Face, NULL, NULL);
+
         IntUnLockFreeType();
 
         if (0 != Error)
@@ -4589,7 +4592,6 @@ ftGdiGetTextMetricsW(
         }
         else
         {
-            FT_Face Face = FontGDI->SharedFace->Face;
             Status = STATUS_SUCCESS;
 
             IntLockFreeType();
@@ -5854,23 +5856,18 @@ ScaleLong(LONG lValue, PFLOATOBJ pef)
 }
 
 /* Calculate width of the text. */
-BOOL
-APIENTRY
+static BOOL
 ftGdiGetTextWidth(
     LONGLONG *pTextWidth64,
     LPCWSTR String,
     INT Count,
-    FT_Face face,
-    LONG lfHeight,
-    UINT fuOptions,
-    FT_Render_Mode RenderMode,
-    const FT_Matrix *pmat,
-    BOOL EmuBold,
-    BOOL EmuItalic)
+    PFONT_CACHE_ENTRY Cache,
+    UINT fuOptions)
 {
     LONGLONG TextLeft64 = 0;
     INT glyph_index;
     FT_BitmapGlyph realglyph;
+    FT_Face face = Cache->Hashed.Face;
     BOOL use_kerning = FT_HAS_KERNING(face);
     ULONG previous = 0;
     FT_Vector delta;
@@ -5880,9 +5877,9 @@ ftGdiGetTextWidth(
     while (Count-- > 0)
     {
         glyph_index = get_glyph_index_flagged(face, *String, ETO_GLYPH_INDEX, fuOptions);
+        Cache->Hashed.GlyphIndex = glyph_index;
 
-        realglyph = ftGdiGetRealGlyph(face, glyph_index, lfHeight, RenderMode,
-                                      pmat, EmuBold, EmuItalic);
+        realglyph = ftGdiGetRealGlyph(Cache);
         if (!realglyph)
             return FALSE;
 
@@ -5895,7 +5892,7 @@ ftGdiGetTextWidth(
 
         TextLeft64 += realglyph->root.advance.x >> 10;
 
-        if (EmuBold || EmuItalic)
+        if (Cache->Hashed.Aspect.EmuBoldItalic)
             FT_Done_Glyph((FT_Glyph)realglyph);
 
         previous = glyph_index;
@@ -5941,16 +5938,15 @@ IntExtTextOutW(
     PFONTGDI FontGDI;
     PTEXTOBJ TextObj;
     EXLATEOBJ exloRGB2Dst, exloDst2RGB;
-    FT_Render_Mode RenderMode;
-    FT_Matrix mat;
     POINT Start;
     USHORT DxShift;
     PMATRIX pmxWorldToDevice;
-    LONG lfHeight, fixAscender, fixDescender;
+    LONG fixAscender, fixDescender;
     FLOATOBJ Scale;
     LOGFONTW *plf;
-    BOOL use_kerning, EmuBold, EmuItalic, bResult, DoBreak;
+    BOOL use_kerning, bResult, DoBreak;
     FT_Vector delta;
+    FONT_CACHE_ENTRY Cache;
 
     /* Check if String is valid */
     if (Count > 0xFFFF || (Count > 0 && String == NULL))
@@ -6067,17 +6063,18 @@ IntExtTextOutW(
     ASSERT(FontGDI);
 
     IntLockFreeType();
-    face = FontGDI->SharedFace->Face;
+    Cache.Hashed.Face = face = FontGDI->SharedFace->Face;
 
     plf = &TextObj->logfont.elfEnumLogfontEx.elfLogFont;
-    lfHeight = plf->lfHeight;
-    EmuBold = EMUBOLD_NEEDED(FontGDI->OriginalWeight, plf->lfWeight);
-    EmuItalic = (plf->lfItalic && !FontGDI->OriginalItalic);
+    Cache.Hashed.lfHeight = plf->lfHeight;
+    Cache.Hashed.lfWidth = plf->lfWidth;
+    Cache.Hashed.Aspect.Emu.Bold = EMUBOLD_NEEDED(FontGDI->OriginalWeight, plf->lfWeight);
+    Cache.Hashed.Aspect.Emu.Italic = (plf->lfItalic && !FontGDI->OriginalItalic);
 
     if (IntIsFontRenderingEnabled())
-        RenderMode = IntGetFontRenderMode(plf);
+        Cache.Hashed.Aspect.RenderMode = (BYTE)IntGetFontRenderMode(plf);
     else
-        RenderMode = FT_RENDER_MODE_MONO;
+        Cache.Hashed.Aspect.RenderMode = (BYTE)FT_RENDER_MODE_MONO;
 
     if (!TextIntUpdateSize(dc, TextObj, FontGDI, FALSE))
     {
@@ -6090,8 +6087,8 @@ IntExtTextOutW(
     if (pdcattr->iGraphicsMode == GM_ADVANCED)
     {
         pmxWorldToDevice = DC_pmxWorldToDevice(dc);
-        FtMatrixFromMx(&mat, pmxWorldToDevice);
-        FT_Set_Transform(face, &mat, 0);
+        FtMatrixFromMx(&Cache.Hashed.matTransform, pmxWorldToDevice);
+        FT_Set_Transform(face, &Cache.Hashed.matTransform, NULL);
 
         fixAscender = ScaleLong(FontGDI->tmAscent, &pmxWorldToDevice->efM22) << 6;
         fixDescender = ScaleLong(FontGDI->tmDescent, &pmxWorldToDevice->efM22) << 6;
@@ -6099,8 +6096,8 @@ IntExtTextOutW(
     else
     {
         pmxWorldToDevice = (PMATRIX)&gmxWorldToDeviceDefault;
-        FtMatrixFromMx(&mat, pmxWorldToDevice);
-        FT_Set_Transform(face, &mat, 0);
+        FtMatrixFromMx(&Cache.Hashed.matTransform, pmxWorldToDevice);
+        FT_Set_Transform(face, &Cache.Hashed.matTransform, NULL);
 
         fixAscender = FontGDI->tmAscent << 6;
         fixDescender = FontGDI->tmDescent << 6;
@@ -6123,14 +6120,7 @@ IntExtTextOutW(
     /* Calculate the text width if necessary */
     if ((fuOptions & ETO_OPAQUE) || (pdcattr->flTextAlign & (TA_CENTER | TA_RIGHT)))
     {
-        if (!ftGdiGetTextWidth(&TextWidth64,
-                               String, Count,
-                               face,
-                               lfHeight,
-                               fuOptions,
-                               RenderMode,
-                               &mat,
-                               EmuBold, EmuItalic))
+        if (!ftGdiGetTextWidth(&TextWidth64, String, Count, &Cache, fuOptions))
         {
             IntUnLockFreeType();
             bResult = FALSE;
@@ -6200,9 +6190,9 @@ IntExtTextOutW(
     for (i = 0; i < Count; ++i)
     {
         glyph_index = get_glyph_index_flagged(face, *String++, ETO_GLYPH_INDEX, fuOptions);
+        Cache.Hashed.GlyphIndex = glyph_index;
 
-        realglyph = ftGdiGetRealGlyph(face, glyph_index, lfHeight, RenderMode,
-                                      &mat, EmuBold, EmuItalic);
+        realglyph = ftGdiGetRealGlyph(&Cache);
         if (!realglyph)
         {
             bResult = FALSE;
@@ -6246,7 +6236,7 @@ IntExtTextOutW(
             {
                 DPRINT1("WARNING: EngCreateBitmap() failed!\n");
                 bResult = FALSE;
-                if (EmuBold || EmuItalic)
+                if (Cache.Hashed.Aspect.EmuBoldItalic)
                     FT_Done_Glyph((FT_Glyph)realglyph);
                 break;
             }
@@ -6257,7 +6247,7 @@ IntExtTextOutW(
                 EngDeleteSurface((HSURF)HSourceGlyph);
                 DPRINT1("WARNING: EngLockSurface() failed!\n");
                 bResult = FALSE;
-                if (EmuBold || EmuItalic)
+                if (Cache.Hashed.Aspect.EmuBoldItalic)
                     FT_Done_Glyph((FT_Glyph)realglyph);
                 break;
             }
@@ -6308,7 +6298,7 @@ IntExtTextOutW(
 
         if (DoBreak)
         {
-            if (EmuBold || EmuItalic)
+            if (Cache.Hashed.Aspect.EmuBoldItalic)
                 FT_Done_Glyph((FT_Glyph)realglyph);
             break;
         }
@@ -6338,7 +6328,7 @@ IntExtTextOutW(
 
         previous = glyph_index;
 
-        if (EmuBold || EmuItalic)
+        if (Cache.Hashed.Aspect.EmuBoldItalic)
         {
             FT_Done_Glyph((FT_Glyph)realglyph);
         }
@@ -6599,11 +6589,9 @@ NtGdiGetCharABCWidthsW(
     PFONTGDI FontGDI;
     FT_Face face;
     FT_CharMap charmap, found = NULL;
-    FT_Matrix mat;
     UINT i, glyph_index, BufferSize;
     HFONT hFont = 0;
     NTSTATUS Status = STATUS_SUCCESS;
-    PMATRIX pmxWorldToDevice;
     PWCHAR Safepwch = NULL;
     LOGFONTW *plf;
 
@@ -6673,8 +6661,6 @@ NtGdiGetCharABCWidthsW(
     hFont = pdcattr->hlfntNew;
     TextObj = RealizeFontInit(hFont);
 
-    /* Get the DC's world-to-device transformation matrix */
-    pmxWorldToDevice = DC_pmxWorldToDevice(dc);
     DC_UnlockDc(dc);
 
     if (TextObj == NULL)
@@ -6721,10 +6707,11 @@ NtGdiGetCharABCWidthsW(
     }
 
     plf = &TextObj->logfont.elfEnumLogfontEx.elfLogFont;
+
+    // NOTE: GetCharABCWidths simply ignores lfEscapement and XFORM.
     IntLockFreeType();
     IntRequestFontSize(dc, FontGDI, plf->lfWidth, plf->lfHeight);
-    FtMatrixFromMx(&mat, pmxWorldToDevice);
-    FT_Set_Transform(face, &mat, 0);
+    FT_Set_Transform(face, NULL, NULL);
 
     for (i = FirstChar; i < FirstChar+Count; i++)
     {
@@ -6806,10 +6793,8 @@ NtGdiGetCharWidthW(
     PFONTGDI FontGDI;
     FT_Face face;
     FT_CharMap charmap, found = NULL;
-    FT_Matrix mat;
     UINT i, glyph_index, BufferSize;
     HFONT hFont = 0;
-    PMATRIX pmxWorldToDevice;
     PWCHAR Safepwc = NULL;
     LOGFONTW *plf;
 
@@ -6866,8 +6851,6 @@ NtGdiGetCharWidthW(
     pdcattr = dc->pdcattr;
     hFont = pdcattr->hlfntNew;
     TextObj = RealizeFontInit(hFont);
-    /* Get the DC's world-to-device transformation matrix */
-    pmxWorldToDevice = DC_pmxWorldToDevice(dc);
     DC_UnlockDc(dc);
 
     if (TextObj == NULL)
@@ -6913,10 +6896,11 @@ NtGdiGetCharWidthW(
     }
 
     plf = &TextObj->logfont.elfEnumLogfontEx.elfLogFont;
+
+    // NOTE: GetCharWidth simply ignores lfEscapement and XFORM.
     IntLockFreeType();
     IntRequestFontSize(dc, FontGDI, plf->lfWidth, plf->lfHeight);
-    FtMatrixFromMx(&mat, pmxWorldToDevice);
-    FT_Set_Transform(face, &mat, 0);
+    FT_Set_Transform(face, NULL, NULL);
 
     for (i = FirstChar; i < FirstChar+Count; i++)
     {
