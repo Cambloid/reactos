@@ -1926,7 +1926,7 @@ IopLoadDriver(
     Status = IopGetRegistryValue(ServiceHandle, L"ImagePath", &kvInfo);
     if (NT_SUCCESS(Status))
     {
-        if (kvInfo->Type != REG_EXPAND_SZ || kvInfo->DataLength == 0)
+        if ((kvInfo->Type != REG_EXPAND_SZ && kvInfo->Type != REG_SZ) || kvInfo->DataLength == 0)
         {
             ExFreePool(kvInfo);
             return STATUS_ILL_FORMED_SERVICE_ENTRY;

@@ -1459,7 +1459,7 @@ PATH_PathToRegion(
 
     if (!pPath->numEntriesUsed) return FALSE;
 
-    counts = ExAllocatePoolWithTag(PagedPool, (pPath->numEntriesUsed / 2) * sizeof(counts), TAG_PATH);
+    counts = ExAllocatePoolWithTag(PagedPool, (pPath->numEntriesUsed / 2) * sizeof(*counts), TAG_PATH);
     if (!counts)
     {
         ERR("Failed to allocate %lu strokes\n", (pPath->numEntriesUsed / 2) * sizeof(*counts));
@@ -2893,6 +2893,14 @@ NtGdiPathToRegion(HDC  hDC)
         hrgnRval = Rgn->BaseObject.hHmgr;
 
         pNewPath = PATH_FlattenPath(pPath);
+        if (pNewPath == NULL)
+        {
+            ERR("Failed to flatten path %p\n", pDc->dclevel.hPath);
+            REGION_Delete(Rgn);
+            PATH_UnlockPath(pPath);
+            DC_UnlockDc(pDc);
+            return NULL;
+        }
 
         Ret = PATH_PathToRegion(pNewPath, pdcattr->jFillMode, Rgn);
 
