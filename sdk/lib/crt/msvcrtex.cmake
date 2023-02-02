@@ -3,6 +3,7 @@ include_directories(include/internal/mingw-w64)
 
 list(APPEND MSVCRTEX_SOURCE
     ${CRT_STARTUP_SOURCE}
+    math/sincos.c
     misc/dbgrpt.cpp
     misc/fltused.c
     misc/isblank.c
@@ -13,6 +14,8 @@ list(APPEND MSVCRTEX_SOURCE
 if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
     # Clang performs some optimizations requiring those funtions
     list(APPEND MSVCRTEX_SOURCE
+        math/round.c
+        math/roundf.c
         math/exp2.c
         math/exp2f.c
         )

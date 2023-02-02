@@ -77,26 +77,26 @@ Beispiel:
     ACTIVE
 .
 Language=Polish
-    On disks with master boot record (MBR) disk formatting, marks
-    the partition with focus as active.
+    Na dyskach zawierających formatowanie z głównym rekordem rozruchowym
+    (MBR) oznacza partycję, na której jest ustawiony fokus, jako aktywną.
 
-Syntax:  ACTIVE
+Składnia:  ACTIVE
 
-    Writes a value to the disk which is read by the basic input/output
-    system (BIOS) at boot. This value specifies that the partition is
-    a valid system partition.
+    Zapisuje na dysku wartość odczytywaną podczas rozruchu przez podstawowy
+    system wejścia/wyjścia (BIOS). Ta wartość oznacza, że dana partycja jest
+    prawidłową partycją systemową.
 
-    A partition must be selected for this operation to succeed.
+    Aby ta operacja powiodła się, partycja musi być wybrana.
 
-    Caution:
+    Uwaga:
 
-        DiskPart verifies only that the partition is capable of containing the
-        operating system startup files. DiskPart does not check the contents of
-        the partition. If you mistakenly mark a partition as active and it does
-        not contain the operating system startup files, your computer might not
-        start.
+        Program DiskPart sprawdza tylko, czy partycja może zawierać pliki
+        startowe systemu operacyjnego. Program DiskPart nie sprawdza zawartości
+        partycji. Jeśli przez pomyłkę jako aktywna zostanie oznaczona partycja
+        niezawierająca plików startowych systemu operacyjnego, komputer może się
+        nie uruchomić.
 
-Example:
+Przykład:
 
     ACTIVE
 .
@@ -245,26 +245,24 @@ Example:
     ACTIVE
 .
 Language=Taiwanese
-    On disks with master boot record (MBR) disk formatting, marks
-    the partition with focus as active.
+    在具有主開機記錄 (MBR) 磁碟格式的磁碟上，
+    將已選擇的磁碟分割標示為使用中。
 
-Syntax:  ACTIVE
+語法:  ACTIVE
 
-    Writes a value to the disk which is read by the basic input/output
-    system (BIOS) at boot. This value specifies that the partition is
-    a valid system partition.
+    寫入值到磁碟，而該磁碟會在開機時由基本輸入/輸出系統 (BIOS) 讀取。
+    這個值會指定磁碟分割為有效的系統磁碟分割。
 
-    A partition must be selected for this operation to succeed.
+    您必須先選擇磁碟分割，才能完成這個操作。
 
-    Caution:
+    注意:
 
-        DiskPart verifies only that the partition is capable of containing the
-        operating system startup files. DiskPart does not check the contents of
-        the partition. If you mistakenly mark a partition as active and it does
-        not contain the operating system startup files, your computer might not
-        start.
+        DiskPart 只會檢查該磁碟分割是否可以包含作業系統的啟動檔案。
+        DiskPart 不會檢查該磁碟分割的內容。
+        如果您錯誤地將未包含作業系統的啟動檔案的磁碟分割標示為使用中，
+        您的電腦可能會無法啟動。
 
-Example:
+範例:
 
     ACTIVE
 .
@@ -536,23 +534,23 @@ Beispiel:
     CLEAN
 .
 Language=Polish
-    Removes any and all partition or volume formatting from the disk with
-    focus.
+    Usuwa wszelkie formatowanie partycji lub woluminów z dysku mającego
+    fokus.
 
-Syntax:  CLEAN [ALL]
+Składnia:  CLEAN [ALL]
 
-    ALL         Specifies that each and every byte\sector on the disk is set to
-                zero, which completely deletes all data contained on the disk.
+    ALL         Określa, że każdy bajt/sektor na dysku zostaje ustawiony
+                na zero, co całkowicie usuwa wszystkie dane zawarte na dysku.
 
-    On master boot record (MBR) disks, only the MBR partitioning information
-    and hidden sector information are overwritten. On GUID partition table
-    (GPT) disks, the GPT partitioning information, including the Protective
-    MBR, is overwritten. If the ALL parameter is not used, the first 1MB
-    and the last 1MB of the disk are zeroed. This erases any disk formatting 
-    that had been previously applied to the disk. The disk's state after 
-    cleaning the disk is 'UNINITIALIZED'.
+    Na dyskach z głównym rekordem rozruchowym (MBR) są zastępowane tylko
+    informacje o partycjonowaniu MBR i ukrytych sektorach. Na dyskach
+    z tablicą partycji GUID (GPT) są zastępowane informacje
+    o partycjonowaniu GPT, łącznie z ochronnym rekordem MBR. Jeśli parametr
+    ALL nie zostanie użyty, 1 MB na początku i na końcu dysku jest zerowany. 
+    Powoduje to wymazanie formatowania poprzednio stosowanego na dysku. 
+    Stanem dysku po jego czyszczeniu jest stan 'NIEZAINICJOWANY'.
 
-Example:
+Przykład:
 
     CLEAN
 .
@@ -683,23 +681,21 @@ Example:
     CLEAN
 .
 Language=Taiwanese
-    Removes any and all partition or volume formatting from the disk with
-    focus.
+    從已選擇的磁碟上移除所有磁碟分割或磁碟區格式。
 
-Syntax:  CLEAN [ALL]
+語法:  CLEAN [ALL]
 
-    ALL         Specifies that each and every byte\sector on the disk is set to
-                zero, which completely deletes all data contained on the disk.
+    ALL         指定將磁碟上每個位元組/磁區設定為零，
+                即完全刪除磁碟上包含的所有資料。
 
-    On master boot record (MBR) disks, only the MBR partitioning information
-    and hidden sector information are overwritten. On GUID partition table
-    (GPT) disks, the GPT partitioning information, including the Protective
-    MBR, is overwritten. If the ALL parameter is not used, the first 1MB
-    and the last 1MB of the disk are zeroed. This erases any disk formatting 
-    that had been previously applied to the disk. The disk's state after 
-    cleaning the disk is 'UNINITIALIZED'.
+    在主開機記錄 (MBR) 磁碟上，只會覆寫 MBR 磁碟分割資訊和隱藏的磁區資訊。
+    在 GUID 磁碟分割表格 (GPT) 磁碟上，會覆寫 GPT 磁碟分割資訊，
+    包括保護性 MBR。
+    如果沒有使用 ALL 參數，會將磁碟的最前 1MB 和最後 1MB 設定為零。
+    這會清除先前套用到該磁碟的任何磁碟格式。
+    清除磁碟以後，磁碟狀態會變為 '未初始化'。
 
-Example:
+範例:
 
     CLEAN
 .
@@ -899,39 +895,42 @@ Beispiel:
     CREATE PARTITION EXTENDED SIZE=1000
 .
 Language=Polish
-    Creates an extended partition on the disk with focus.
-    Applies to master boot record (MBR) disks only.
+    Tworzy partycję rozszerzoną na dysku mającym fokus.
+    Dotyczy tylko dysków z głównym rekordem rozruchowym (MBR).
 
-Syntax:  CREATE PARTITION EXTENDED [SIZE=<N>] [OFFSET=<N>] [ALIGN=<N>] [NOERR]
+Składnia:  CREATE PARTITION EXTENDED [SIZE=<N>] [OFFSET=<N>] [ALIGN=<N>] [NOERR]
 
-    SIZE=<N>    The size of the partition in megabytes (MB). If no size is
-                given, the partition continues until there is no more free
-                space in the extended partition.
+    SIZE=<N>    Rozmiar partycji w megabajtach (MB). Jeśli nie podano
+                rozmiaru, partycja zajmuje całe wolne miejsce na partycji
+                rozszerzonej.
 
-    OFFSET=<N>  The offset, in kilobytes (KB), at which the partition is
-                created. If no offset is given, the partition will start
-                at the beginning of the first free space on the disk that
-                is large enough to hold the new partition.
+    OFFSET=<N>  Przesunięcie w kilobajtach (KB), przy którym zostanie
+                utworzona partycja. Jeśli nie podano przesunięcia, partycja
+                zostanie umieszczona na początku pierwszego wolnego miejsca
+                na dysku, w którym się zmieści.
 
-    ALIGN=<N>   Typically used with hardware RAID Logical Unit Number (LUN)
-                arrays to improve performance. The partition offset will be
-                a multiple of <N>. If the OFFSET parameter is specified, it
-                will be rounded to the closest multiple of <N>.
+    ALIGN=<N>   Zazwyczaj używany z numerami jednostek logicznych (LUN)
+                sprzętowych macierzy RAID w celu poprawienia wydajności.
+                Przesunięcie partycji będzie wielokrotnością liczby <N>.
+                Jeśli nie określono parametru OFFSET, jest ono zaokrąglane
+                do najbliższej wielokrotności liczby <N>.
 
-    NOERR       For scripting only. When an error is encountered, DiskPart
-                continues to process commands as if the error did not occur.
-                Without the NOERR parameter, an error causes DiskPart to exit
-                with an error code.
+    NOERR       Tylko do obsługi skryptów. Po wystąpieniu błędu program
+                DiskPart kontynuuje przetwarzanie poleceń tak, jakby błąd
+                nie wystąpił. W przypadku braku parametru NOERR błąd powoduje
+                zakończenie działania programu DiskPart i zwrócenie
+                kodu błędu.
 
-    After the partition has been created, the focus automatically shifts to the
-    new partition. Only one extended partition can be created per disk. This
-    command fails if you attempt to create an extended partition within another
-    extended partition. You must create an extended partition before you can
-    create logical partitions.
+    Po utworzeniu nowej partycji automatycznie otrzymuje ona fokus. Na każdym
+    dysku można utworzyć tylko jedną partycję rozszerzoną. To polecenie
+    zakończy się niepowodzeniem w przypadku próby utworzenia partycji
+    rozszerzonej w obrębie innej partycji rozszerzonej. Konieczne jest
+    utworzenie partycji rozszerzonej przed utworzeniem partycji logicznych.
 
-    A basic MBR disk must be selected for this operation to succeed.
+    Aby operacja została wykonana pomyślnie, musi być wybrany podstawowy
+    dysk MBR.
 
-Example:
+Przykład:
 
     CREATE PARTITION EXTENDED SIZE=1000
 .
@@ -1158,39 +1157,34 @@ Example:
     CREATE PARTITION EXTENDED SIZE=1000
 .
 Language=Taiwanese
-    Creates an extended partition on the disk with focus.
-    Applies to master boot record (MBR) disks only.
+    在已選擇的磁碟上建立一個延伸磁碟分割。
+	只適用於主開機記錄 (MBR) 磁碟。
 
-Syntax:  CREATE PARTITION EXTENDED [SIZE=<N>] [OFFSET=<N>] [ALIGN=<N>] [NOERR]
+語法:  CREATE PARTITION EXTENDED [SIZE=<N>] [OFFSET=<N>] [ALIGN=<N>] [NOERR]
 
-    SIZE=<N>    The size of the partition in megabytes (MB). If no size is
-                given, the partition continues until there is no more free
-                space in the extended partition.
+    SIZE=<N>    磁碟分割大小 (單位為 MB)。如果沒有提供大小，
+                磁碟分割會繼續，直至目前區域沒有任何可用空間。
 
-    OFFSET=<N>  The offset, in kilobytes (KB), at which the partition is
-                created. If no offset is given, the partition will start
-                at the beginning of the first free space on the disk that
-                is large enough to hold the new partition.
+    OFFSET=<N>  建立磁碟分割所在的位移 (單位為 KB)。如果沒有指定位移，
+                磁碟分割會從磁碟上可容納新磁碟分割的
+                第一個可用空間的開頭開始。
 
-    ALIGN=<N>   Typically used with hardware RAID Logical Unit Number (LUN)
-                arrays to improve performance. The partition offset will be
-                a multiple of <N>. If the OFFSET parameter is specified, it
-                will be rounded to the closest multiple of <N>.
+    ALIGN=<N>   通常與硬體 RAID 邏輯單元編號 (LUN) 陣列搭配使用以增進效能。
+                延伸位移將會是 <N> 的倍數。如果指定了 OFFSET 參數，
+                它會取至最接近的 <N> 的倍數。
 
-    NOERR       For scripting only. When an error is encountered, DiskPart
-                continues to process commands as if the error did not occur.
-                Without the NOERR parameter, an error causes DiskPart to exit
-                with an error code.
+    NOERR       只限指令碼。當發生錯誤時，DiskPart 會繼續處理命令，
+                如同沒有發生任何錯誤一樣。如果沒有使用 NOERR 參數，
+                錯誤會導致 DiskPart 結束，並傳回錯誤碼。
 
-    After the partition has been created, the focus automatically shifts to the
-    new partition. Only one extended partition can be created per disk. This
-    command fails if you attempt to create an extended partition within another
-    extended partition. You must create an extended partition before you can
-    create logical partitions.
+    在磁碟分割建立完成後，焦點將自動給予新磁碟分割。
+    每個磁碟只能建立一個延伸磁碟分割。如果您嘗試在一個延伸磁碟分割中
+    建立另一個延伸磁碟分割，命令將會執行失敗。
+    您必須先建立一個延伸磁碟分割，然後才能建立邏輯磁碟分割。
 
-    A basic MBR disk must be selected for this operation to succeed.
+    您必須先選擇基本 MBR 磁碟，才能完成這個操作。
 
-Example:
+範例:
 
     CREATE PARTITION EXTENDED SIZE=1000
 .
@@ -1277,38 +1271,38 @@ Beispiel:
     CREATE PARTITION LOGICAL SIZE=1000
 .
 Language=Polish
-    Creates a logical partition in an extended partition.
-    Applies to master boot record (MBR) disks only.
+    Tworzy partycję logiczną w obrębie partycji rozszerzonej.
+    Dotyczy tylko dysków z głównym rekordem rozruchowym (MBR).
 
-Syntax:  CREATE PARTITION LOGICAL [SIZE=<N>] [OFFSET=<N>] [ALIGN=<N>] [NOERR]
+Składnia:  CREATE PARTITION LOGICAL [SIZE=<N>] [OFFSET=<N>] [ALIGN=<N>] [NOERR]
 
-    SIZE=<N>    The size of the partition in megabytes (MB). The partition is
-                at least as big in bytes as the number specified by N. If you
-                specify a size for the logical partition, it must be smaller
-                than the extended partition. If no size is given, the partition
-                continues until there is no more free space in the extended
-                partition.
+    SIZE=<N>    Rozmiar partycji w megabajtach (MB). Partycja ma przynajmniej
+                taki rozmiar w bajtach, jak podana liczba N.
+                Określany rozmiar partycji logicznej musi być mniejszy od
+                rozmiaru partycji rozszerzonej. Jeśli nie podano rozmiaru,
+                partycja zajmuje całe wolne miejsce w bieżącym obszarze.
 
-    OFFSET=<N>  The offset, in kilobytes (KB), at which the partition is created.
-                If no offset is given, the partition is placed in the first disk
-                extent that is large enough to hold it.
+    OFFSET=<N>  Przesunięcie w kilobajtach (KB), przy którym zostanie utworzona
+                partycja. Jeśli nie podano przesunięcia, partycja zostanie
+                umieszczona w pierwszym zakresie dysku, w którym się zmieści.
 
-    ALIGN=<N>   Typically used with hardware RAID Logical Unit Number (LUN)
-                arrays to improve performance. The partition offset will be
-                a multiple of <N>. If the OFFSET parameter is specified, it
-                will be rounded to the closest multiple of <N>.
+    ALIGN=<N>   Zazwyczaj używany z numerami jednostek logicznych (LUN)
+                sprzętowych macierzy RAID w celu poprawienia wydajności.
+                Przesunięcie partycji będzie wielokrotnością liczby <N>.
+                Jeśli nie określono parametru OFFSET, jest ono zaokrąglane
+                do najbliższej wielokrotności liczby <N>.
 
-    NOERR       For scripting only. When an error is encountered, DiskPart
-                continues to process commands as if the error did not occur.
-                Without the NOERR parameter, an error causes DiskPart to exit
-                with an error code.
+    NOERR       Tylko do obsługi skryptów. Po wystąpieniu błędu program DiskPart
+                kontynuuje przetwarzanie poleceń tak, jakby błąd nie wystąpił.
+                W przypadku braku parametru NOERR błąd powoduje, zakończenie
+                działania programu DiskPart i zwrócenie kodu błędu.
 
-    After the partition has been created, the focus automatically shifts to the
-    new logical partition.
+    Po utworzeniu nowej partycji logicznej automatycznie otrzymuje ona fokus.
 
-    A basic MBR disk must be selected for this operation to succeed.
+    Aby operacja została wykonana pomyślnie, musi być wybrany podstawowy
+    dysk MBR.
 
-Example:
+Przykład:
 
     CREATE PARTITION LOGICAL SIZE=1000
 .
@@ -1529,38 +1523,33 @@ Example:
     CREATE PARTITION LOGICAL SIZE=1000
 .
 Language=Taiwanese
-    Creates a logical partition in an extended partition.
-    Applies to master boot record (MBR) disks only.
+    在延伸磁碟分割內建立一個邏輯磁碟分割。
+    只適用於主開機記錄 (MBR) 磁碟。
 
-Syntax:  CREATE PARTITION LOGICAL [SIZE=<N>] [OFFSET=<N>] [ALIGN=<N>] [NOERR]
+語法:  CREATE PARTITION LOGICAL [SIZE=<N>] [OFFSET=<N>] [ALIGN=<N>] [NOERR]
 
-    SIZE=<N>    The size of the partition in megabytes (MB). The partition is
-                at least as big in bytes as the number specified by N. If you
-                specify a size for the logical partition, it must be smaller
-                than the extended partition. If no size is given, the partition
-                continues until there is no more free space in the extended
-                partition.
+    SIZE=<N>    磁碟分割大小 (單位為 MB)。磁碟分割的大小至少為 N 所指定的
+                大小 (位元組)。如果您指定邏輯磁碟分割的大小，它必須小於
+                延伸磁碟分割。如果沒有提供大小，磁碟分割會繼續，
+                直至延伸磁碟分割沒有任何可用空間。
 
-    OFFSET=<N>  The offset, in kilobytes (KB), at which the partition is created.
-                If no offset is given, the partition is placed in the first disk
-                extent that is large enough to hold it.
+    OFFSET=<N>  建立磁碟分割所在的位移 (單位為 KB)。如果沒有指定位移，
+                磁碟分割會從磁碟上可容納新磁碟分割的
+                第一個可用空間的開頭開始。
 
-    ALIGN=<N>   Typically used with hardware RAID Logical Unit Number (LUN)
-                arrays to improve performance. The partition offset will be
-                a multiple of <N>. If the OFFSET parameter is specified, it
-                will be rounded to the closest multiple of <N>.
+    ALIGN=<N>   通常與硬體 RAID 邏輯單元編號 (LUN) 陣列搭配使用以增進效能。
+                延伸位移將會是 <N> 的倍數。如果指定了 OFFSET 參數，
+                它會取至最接近的 <N> 的倍數。
 
-    NOERR       For scripting only. When an error is encountered, DiskPart
-                continues to process commands as if the error did not occur.
-                Without the NOERR parameter, an error causes DiskPart to exit
-                with an error code.
+    NOERR       只限指令碼。當發生錯誤時，DiskPart 會繼續處理命令，
+                如同沒有發生任何錯誤一樣。如果沒有使用 NOERR 參數，
+                錯誤會導致 DiskPart 結束，並傳回錯誤碼。
 
-    After the partition has been created, the focus automatically shifts to the
-    new logical partition.
+    在磁碟分割建立完成後，焦點將自動給予新的邏輯磁碟分割。
 
-    A basic MBR disk must be selected for this operation to succeed.
+    您必須先選擇基本 MBR 磁碟，才能完成這個操作。
 
-Example:
+範例:
 
     CREATE PARTITION LOGICAL SIZE=1000
 .
@@ -1828,105 +1817,113 @@ Beispiel:
     CREATE PARTITION PRIMARY SIZE=10000 ID=DE
 .
 Language=Polish
-    Creates a primary partition on the basic disk with focus.
+    Tworzy partycję podstawową na dysku podstawowym mającym fokus.
 
-Syntax:  CREATE PARTITION PRIMARY [SIZE=<N>] [OFFSET=<N>] [ID={<BYTE> | <GUID>}]
+Składnia:  CREATE PARTITION PRIMARY [SIZE=<N>] [OFFSET=<N>] [ID={<BYTE> | <GUID>}]
             [ALIGN=<N>] [NOERR]
 
-    SIZE=<N>    The size of the partition in megabytes (MB). If no size is
-                given, the partition continues until there is no more
-                unallocated space in the current region.
+    SIZE=<N>    Rozmiar partycji w megabajtach (MB). Jeśli nie podano
+                rozmiaru, partycja zajmuje całe nieprzydzielone miejsce w
+                bieżącym obszarze.
 
-    OFFSET=<N>  The offset, in kilobytes (KB), at which the partition is created.
-                If no offset is given, the partition is placed in the first disk
-                extent that is large enough to hold it.
+    OFFSET=<N>  Przesunięcie w kilobajtach, przy którym zostanie utworzona.
+                partycja. Jeśli nie podano przesunięcia, partycja zostanie
+                umieszczona w pierwszym zakresie dysku, w którym się zmieści.
 
     ID={<BYTE> | <GUID>}
 
-                Specifies the partition type.
+                Określa typ partycji.
 
-                Intended for Original Equipment Manufacturer (OEM) use only.
+                Parametr przeznaczony tylko do użytku przez producentów
+                oryginalnego sprzętu (OEM).
 
-                For master boot record (MBR) disks, you can specify a partition
-                type byte, in hexadecimal form, for the partition. If this
-                parameter is not specified for an MBR disk, the command creates
-                a partition of type 0x06 (specifies no file system is installed).
+                W przypadku dysków z głównym rekordem rozruchowym (MBR) można
+                dla partycji określić bajt typu partycji (szesnastkowo). Jeśli
+                ten parametr nie zostanie określony dla dysku MBR, polecenie
+                powoduje utworzenie partycji typu 0x06 (określa, że brak jest
+                zainstalowanego systemu plików).
 
-                    LDM data partition:
+                    Partycja danych LDM:
                         0x42
 
-                    Recovery partition:
+                    Partycja odzyskiwania:
                         0x27
 
-                    Recognized OEM Ids:
+                    Rozpoznawane identyfikatory OEM:
                         0x12
                         0x84
                         0xDE
                         0xFE
                         0xA0
 
-                For GUID partition table (GPT) disks you can specify a
-                partition type GUID for the partition you want to create.
-                Recognized GUIDs include:
+                W przypadku dysków z tablicą partycji GUID (GPT) można
+                określić identyfikator GUID typu partycji, która ma zostać
+                utworzona. Rozpoznawane identyfikatory GUID są następujące:
 
-                    EFI System partition:
+                    Partycja systemowa EFI:
                         c12a7328-f81f-11d2-ba4b-00a0c93ec93b
 
-                    Microsoft Reserved partition:
+                    Partycja zastrzeżona firmy Microsoft:
                         e3c9e316-0b5c-4db8-817d-f92df00215ae
 
-                    Basic data partition:
+                    Podstawowa partycja danych:
                         ebd0a0a2-b9e5-4433-87c0-68b6b72699c7
 
-                    LDM Metadata partition on a dynamic disk:
+                    Partycja metadanych LDM na dysku dynamicznym:
                         5808c8aa-7e8f-42e0-85d2-e1e90434cfb3
 
-                    LDM Data partition on a dynamic disk:
+                    Partycja danych LDM na dysku dynamicznym:
                         af9b60a0-1431-4f62-bc68-3311714a69ad
 
-                    Recovery partition:
+                    Partycja odzyskiwania:
                         de94bba4-06d1-4d40-a16a-bfd50179d6ac
 
-                If this parameter is not specified for a GPT disk, the command
-                creates a basic data partition.
+                Jeśli ten parametr nie zostanie określony dla dysku GPT,
+                polecenie utworzy podstawową partycję danych.
 
-                Any partition type byte or GUID can be specified with this
-                parameter. DiskPart does not check the partition type for
-                validity except to ensure that it is a byte in hexadecimal form
-                or a GUID.
+                Za pomocą tego parametru można określić dowolny bajt
+                typu partycji lub identyfikator GUID. Program DiskPart nie
+                sprawdza poprawności typu partycji. Sprawdza jedynie, czy
+                podana wartość ma postać szesnastkową lub jest
+                identyfikatorem GUID.
 
-                Caution:
+                Uwaga:
 
-                    Creating partitions with this parameter might cause your
-                    computer to fail or be unable to start up. Unless you are
-                    an OEM or an IT professional experienced with GPT disks, do
-                    not create partitions on GPT disks using this parameter.
-                    Instead, always use the CREATE PARTITION EFI command to
-                    create EFI System partitions, the CREATE PARTITION MSR
-                    command to create Microsoft Reserved partitions, and the
-                    CREATE PARTITION PRIMARY command without this parameter to
-                    create primary partitions on GPT disks.
+                    Tworzenie partycji z tym parametrem może sprawić, że
+                    komputer ulegnie awarii lub nie będzie można go
+                    uruchomić. Jeśli użytkownik nie jest producentem OEM ani
+                    informatykiem dysponującym doświadczeniem w zakresie
+                    dysków GPT, nie powinien tworzyć partycji na dyskach GPT
+                    przy użyciu tego parametru. Zamiast tego należy zawsze
+                    używać polecenia CREATE PARTITION EFI do tworzenia
+                    partycji systemowych EFI, polecenia CREATE PARTITION MSR
+                    do tworzenia partycji zastrzeżonej firmy Microsoft
+                    i polecenia CREATE PARTITION PRIMARY (bez opisywanego
+                    parametru) do tworzenia partycji podstawowych
+                    na dyskach GPT.
 
-    ALIGN=<N>   Typically used with hardware RAID Logical Unit Number (LUN)
-                arrays to improve performance. The partition offset will be
-                a multiple of <N>. If the OFFSET parameter is specified, it
-                will be rounded to the closest multiple of <N>.
+    ALIGN=<N>   Zazwyczaj używany z numerami jednostek logicznych (LUN)
+                sprzętowych macierzy RAID w celu poprawienia wydajności.
+                Przesunięcie partycji będzie wielokrotnością liczby N.
+                Jeśli nie określono parametru OFFSET, jest ono zaokrąglane
+                do najbliższej wielokrotności liczby N.
 
-    NOERR       For scripting only. When an error is encountered, DiskPart
-                continues to process commands as if the error did not occur.
-                Without the NOERR parameter, an error causes DiskPart to exit
-                with an error code.
+    NOERR       Tylko do obsługi skryptów. Po wystąpieniu błędu program
+                DiskPart kontynuuje przetwarzanie poleceń tak, jakby błąd
+                nie wystąpił. W przypadku braku parametru NOERR błąd powoduje
+                zakończenie działania programu DiskPart i zwrócenie
+                kodu błędu.
 
-    After you create the partition, the focus automatically shifts to the new
-    partition. The partition does not receive a drive letter. You must use the
-    assign command to assign a drive letter to the partition.
+    Po utworzeniu partycji automatycznie otrzymuje ona fokus. Partycja nie
+    otrzymuje litery dysku. Aby przypisać partycji literę dysku,
+    należy użyć polecenia ASSIGN.
 
-    A basic disk must be selected for this operation to succeed.
+    Aby ta operacja się powiodła, musi być wybrany dysk podstawowy.
 
-    If a partition type is not specified, the disk is uninitialized and disk
-    size is greater than 2TB, it will be initialized to GPT.
+    Jeśli typ partycji nie jest określony, dysk jest niezainicjowany a rozmiar
+    rozmiar większy niż 2 TB, zostanie zainicjowany do GPT.
 
-Example:
+Przykład:
 
     CREATE PARTITION PRIMARY SIZE=1000
     CREATE PARTITION PRIMARY SIZE=128 ID=c12a7328-f81f-11d2-ba4b-00a0c93ec93b
@@ -2570,105 +2567,98 @@ Example:
     CREATE PARTITION PRIMARY SIZE=10000 ID=DE
 .
 Language=Taiwanese
-    Creates a primary partition on the basic disk with focus.
+    在已選擇的基本磁碟上建立主要磁碟分割。
 
-Syntax:  CREATE PARTITION PRIMARY [SIZE=<N>] [OFFSET=<N>] [ID={<BYTE> | <GUID>}]
+語法:  CREATE PARTITION PRIMARY [SIZE=<N>] [OFFSET=<N>] [ID={<BYTE> | <GUID>}]
             [ALIGN=<N>] [NOERR]
 
-    SIZE=<N>    The size of the partition in megabytes (MB). If no size is
-                given, the partition continues until there is no more
-                unallocated space in the current region.
+    SIZE=<N>    磁碟分割大小 (單位為 MB)。如果沒有提供大小，磁碟分割會繼續，
+                直至目前區域沒有任何可用空間。
 
-    OFFSET=<N>  The offset, in kilobytes (KB), at which the partition is created.
-                If no offset is given, the partition is placed in the first disk
-                extent that is large enough to hold it.
+    OFFSET=<N>  建立磁碟分割所在的位移 (單位為 KB)。如果沒有指定位移，
+                磁碟分割會從磁碟上可容納新磁碟分割的
+                第一個可用空間的開頭開始。
 
     ID={<BYTE> | <GUID>}
 
-                Specifies the partition type.
+                指定磁碟分割類型。
 
-                Intended for Original Equipment Manufacturer (OEM) use only.
+                只供原始設備製造商 (OEM) 使用。
 
-                For master boot record (MBR) disks, you can specify a partition
-                type byte, in hexadecimal form, for the partition. If this
-                parameter is not specified for an MBR disk, the command creates
-                a partition of type 0x06 (specifies no file system is installed).
+                對於主開機記錄 (MBR) 磁碟，您可以使用十六進位格式來指定該
+                磁碟分割的磁碟分割類型位元組。如果沒有為 MBR 磁碟指定
+                這個參數，這個命令會建立類型為 06 的磁碟分割。
+                (指定沒有安裝檔案系統)。
 
-                    LDM data partition:
+                    LDM 資料磁碟分割:
                         0x42
 
-                    Recovery partition:
+                    修復磁碟分割:
                         0x27
 
-                    Recognized OEM Ids:
+                    可識別的 OEM 識別碼:
                         0x12
                         0x84
                         0xDE
                         0xFE
                         0xA0
 
-                For GUID partition table (GPT) disks you can specify a
-                partition type GUID for the partition you want to create.
-                Recognized GUIDs include:
+                對於 GUID 磁碟分割表格 (GPT) 磁碟，您可以為想要建立的
+                磁碟分割指定磁碟分割類型 GUID。
+                可識別的 GUID 包括:
 
-                    EFI System partition:
+                    EFI 系統磁碟分割:
                         c12a7328-f81f-11d2-ba4b-00a0c93ec93b
 
-                    Microsoft Reserved partition:
+                    Microsoft 保留磁碟分割:
                         e3c9e316-0b5c-4db8-817d-f92df00215ae
 
-                    Basic data partition:
+                    基本資料磁碟分割:
                         ebd0a0a2-b9e5-4433-87c0-68b6b72699c7
 
-                    LDM Metadata partition on a dynamic disk:
+                    動態磁碟上的 LDM 中繼資料磁碟分割:
                         5808c8aa-7e8f-42e0-85d2-e1e90434cfb3
 
-                    LDM Data partition on a dynamic disk:
+                    動態磁碟上的 LDM 資料磁碟分割:
                         af9b60a0-1431-4f62-bc68-3311714a69ad
 
-                    Recovery partition:
+                    修復磁碟分割:
                         de94bba4-06d1-4d40-a16a-bfd50179d6ac
 
-                If this parameter is not specified for a GPT disk, the command
-                creates a basic data partition.
+                如果沒有為 GPT 磁碟指定這個參數，
+                這個命令會建立基本資料磁碟分割。
 
-                Any partition type byte or GUID can be specified with this
-                parameter. DiskPart does not check the partition type for
-                validity except to ensure that it is a byte in hexadecimal form
-                or a GUID.
+                您可以使用這個參數指定任何磁碟分割類型位元組或 GUID。
+                DiskPart 不會檢查磁碟分割類型的有效性，但會確保
+                磁碟分割類型是否為以十六進位格式或 GUID 表示的位元組。 
 
-                Caution:
+                注意:
 
-                    Creating partitions with this parameter might cause your
-                    computer to fail or be unable to start up. Unless you are
-                    an OEM or an IT professional experienced with GPT disks, do
-                    not create partitions on GPT disks using this parameter.
-                    Instead, always use the CREATE PARTITION EFI command to
-                    create EFI System partitions, the CREATE PARTITION MSR
-                    command to create Microsoft Reserved partitions, and the
-                    CREATE PARTITION PRIMARY command without this parameter to
-                    create primary partitions on GPT disks.
+                    使用這個參數建立磁碟分割，可能會造成您的電腦失敗或
+                    無法啟動。除非您是熟悉 GPT 磁碟的 OEM 或 IT 專業人員，
+                    否則請勿在 GPT 磁碟上建立磁碟分割時使用這個參數。
+                    相反地，您應該使用 CREATE PARTITION EFI 命令來建立
+                    EFI 系統磁碟分割、使用 CREATE PARTITION MSR 命令來建立
+                    Microsoft 保留磁碟分割，及使用 CREATE PARTITION PRIMARY
+                    命令 (而不使用此參數) 在 GPT 磁碟上建立主要磁碟分割。
 
-    ALIGN=<N>   Typically used with hardware RAID Logical Unit Number (LUN)
-                arrays to improve performance. The partition offset will be
-                a multiple of <N>. If the OFFSET parameter is specified, it
-                will be rounded to the closest multiple of <N>.
+    ALIGN=<N>   通常與硬體 RAID 邏輯單元編號 (LUN) 陣列搭配使用以增進效能。
+                延伸位移將會是 <N> 的倍數。如果指定了 OFFSET 參數，
+                它會取至最接近的 <N> 的倍數。
 
-    NOERR       For scripting only. When an error is encountered, DiskPart
-                continues to process commands as if the error did not occur.
-                Without the NOERR parameter, an error causes DiskPart to exit
-                with an error code.
+    NOERR       只限指令碼。當發生錯誤時，DiskPart 會繼續處理命令，
+                如同沒有發生任何錯誤一樣。如果沒有使用 NOERR 參數，
+                錯誤會導致 DiskPart 結束，並傳回錯誤碼。
 
-    After you create the partition, the focus automatically shifts to the new
-    partition. The partition does not receive a drive letter. You must use the
-    assign command to assign a drive letter to the partition.
+    在磁碟分割建立完成後，焦點將自動給予新的磁碟分割。該磁碟分割尚未指定
+    磁碟機代號。您必須使用 ASSIGN 命令來分配磁碟機代號到該磁碟分割。
 
-    A basic disk must be selected for this operation to succeed.
+    您必須先選擇基本磁碟，才能完成這個操作。
 
-    If a partition type is not specified, the disk is uninitialized and disk
-    size is greater than 2TB, it will be initialized to GPT.
+    如果未有指定磁碟分割類型，而磁碟尚未初始化且磁碟大小大於 2TB，
+    磁碟將會初始化為 GPT 磁碟。
 
-Example:
+範例:
 
     CREATE PARTITION PRIMARY SIZE=1000
     CREATE PARTITION PRIMARY SIZE=128 ID=c12a7328-f81f-11d2-ba4b-00a0c93ec93b
@@ -2772,28 +2762,30 @@ Beispiel:
     DELETE PARTITION
 .
 Language=Polish
-Deletes the partition with focus.
+Usuwa partycję, na której jest ustawiony fokus.
 
-Syntax:  DELETE PARTITION [NOERR] [OVERRIDE]
+Składnia:  DELETE PARTITION [NOERR] [OVERRIDE]
 
-    NOERR       For scripting only. When an error is encountered, DiskPart
-                continues to process commands as if the error did not occur.
-                Without the NOERR parameter, an error causes DiskPart to exit
-                with an error code.
+    NOERR       Tylko do obsługi skryptów. Po wystąpieniu błędu program
+                DiskPart kontynuuje przetwarzanie poleceń tak, jakby błąd
+                nie wystąpił. W przypadku braku parametru NOERR błąd powoduje
+                zakończenie działania programu DiskPart i zwrócenie
+                kodu błędu.
 
-    OVERRIDE    Enables DiskPart to delete any partition regardless of type.
-                Typically, DiskPart only permits you to delete known data
-                partitions.
+    OVERRIDE    Umożliwia usunięcie przez program DiskPart każdej partycji bez
+                względu na jej typ. Zazwyczaj program DiskPart zezwala
+                na usunięcie wyłącznie znanych partycji zawierających dane.
 
-    You cannot delete the system partition, boot partition, or any partition
-    that contains the active paging file or crash dump (memory dump) filed.
+    Nie można usunąć partycji systemowej, partycji rozruchowej ani żadnej
+    partycji zawierającej aktywny plik stronicowania lub plik zrzutu
+    awaryjnego (zrzutu pamięci).
 
-    A partition must be selected for this operation to succeed.
+    Aby ta operacja się powiodła, musi być wybrana partycja.
 
-    Partitions cannot be deleted from dynamic disks or created on dynamic
-    disks.
+    Partycji nie można usuwać z dysków dynamicznych ani tworzyć ich na takich
+    dyskach.
 
-Example:
+Przykład:
 
     DELETE PARTITION
 .
@@ -2954,28 +2946,25 @@ Example:
     DELETE PARTITION
 .
 Language=Taiwanese
-Deletes the partition with focus.
+刪除已選擇的磁碟分割。
 
-Syntax:  DELETE PARTITION [NOERR] [OVERRIDE]
+語法:  DELETE PARTITION [NOERR] [OVERRIDE]
 
-    NOERR       For scripting only. When an error is encountered, DiskPart
-                continues to process commands as if the error did not occur.
-                Without the NOERR parameter, an error causes DiskPart to exit
-                with an error code.
+    NOERR       只限指令碼。當發生錯誤時，DiskPart 會繼續處理命令，
+                如同沒有發生任何錯誤一樣。如果沒有使用 NOERR 參數，
+                錯誤會導致 DiskPart 結束，並傳回錯誤碼。
 
-    OVERRIDE    Enables DiskPart to delete any partition regardless of type.
-                Typically, DiskPart only permits you to delete known data
-                partitions.
+    OVERRIDE    讓 DiskPart 刪除所有類型的磁碟分割。
+                一般來說，DiskPart 只允許您刪除已知的資料磁碟分割。
 
-    You cannot delete the system partition, boot partition, or any partition
-    that contains the active paging file or crash dump (memory dump) filed.
+    您不能刪除系統磁碟分割、開機磁碟分割，或任何包含使用中的
+    分頁檔或損毀傾印 (記憶體傾印) 檔案的磁碟分割。
 
-    A partition must be selected for this operation to succeed.
+    您必須先選擇一個磁碟分割，才能完成這個操作。
 
-    Partitions cannot be deleted from dynamic disks or created on dynamic
-    disks.
+    您無法從動態磁碟刪除磁碟分割，也無法在動態磁碟上建立磁碟分割。
 
-Example:
+範例:
 
     DELETE PARTITION
 .
@@ -3047,14 +3036,14 @@ Beispiel:
     DETAIL DISK
 .
 Language=Polish
-    Displays the properties of the selected disk and the list of volumes on
-    the disk.
+    Wyświetla właściwości wybranego dysku oraz listę znajdujących się na nim
+    woluminów.
 
-Syntax:  DETAIL DISK
+Składnia:  DETAIL DISK
 
-    A disk must be selected for this operation to succeed.
+    Do pomyślnego ukończenia operacji konieczne jest wybranie dysku.
 
-Example:
+Przykład:
 
     DETAIL DISK
 .
@@ -3131,14 +3120,13 @@ Example:
     DETAIL DISK
 .
 Language=Taiwanese
-    Displays the properties of the selected disk and the list of volumes on
-    the disk.
+    顯示在該磁碟上已選擇之磁碟的內容及列出磁碟區。 
 
-Syntax:  DETAIL DISK
+語法:  DETAIL DISK
 
-    A disk must be selected for this operation to succeed.
+    您必須先選擇一個磁碟，才能完成這個操作。
 
-Example:
+範例:
 
     DETAIL DISK
 .
@@ -3171,13 +3159,13 @@ Beispiel:
     DETAIL PARTITION
 .
 Language=Polish
-    Displays the properties for the selected partition.
+    Wyświetla właściwości wybranej partycji.
 
-Syntax:  DETAIL PARTITION
+Składnia:  DETAIL PARTITION
 
-    A partition must be selected for this operation to succeed.
+    Do pomyślnego ukończenia operacji konieczne jest wybranie partycji.
 
-Example:
+Przykład:
 
     DETAIL PARTITION
 .
@@ -3248,13 +3236,13 @@ Example:
     DETAIL PARTITION
 .
 Language=Taiwanese
-    Displays the properties for the selected partition.
+    顯示已選擇之磁碟分割的內容。 
 
-Syntax:  DETAIL PARTITION
+語法:  DETAIL PARTITION
 
-    A partition must be selected for this operation to succeed.
+    您必須先選擇一個磁碟分割，才能完成這個操作。
 
-Example:
+範例:
 
     DETAIL PARTITION
 .
@@ -3289,14 +3277,14 @@ Beispiel:
     DETAIL VOLUME
 .
 Language=Polish
-    Displays the properties for the selected volume and the list of disks on
-    which the volume resides.
+    Wyświetla właściwości wybranego woluminu oraz listę dysków, na których
+    wolumin się znajduje.
 
-Syntax:  DETAIL VOLUME
+Składnia:  DETAIL VOLUME
 
-    A volume must be selected for this operation to succeed.
+    Do pomyślnego ukończenia operacji konieczne jest wybranie woluminu.
 
-Example:
+Przykład:
 
     DETAIL VOLUME
 .
@@ -3373,14 +3361,13 @@ Example:
     DETAIL VOLUME
 .
 Language=Taiwanese
-    Displays the properties for the selected volume and the list of disks on
-    which the volume resides.
+    顯示已選擇之磁碟區的內容，及磁碟區所在的磁碟清單。
 
-Syntax:  DETAIL VOLUME
+語法:  DETAIL VOLUME
 
-    A volume must be selected for this operation to succeed.
+    您必須先選擇一個磁碟區，才能完成這個操作。
 
-Example:
+範例:
 
     DETAIL VOLUME
 .
@@ -3445,11 +3432,11 @@ Beispiel:
     EXIT
 .
 Language=Polish
-    Exits the DiskPart command interpreter.
+    Kończy działanie interpretera poleceń programu DiskPart.
 
-Syntax:  EXIT
+Składnia:  EXIT
 
-Example:
+Przykład:
 
     EXIT
 .
@@ -3508,11 +3495,11 @@ Example:
     EXIT
 .
 Language=Taiwanese
-    Exits the DiskPart command interpreter.
+    結束 DiskPart 命令直譯器。
 
-Syntax:  EXIT
+語法:  EXIT
 
-Example:
+範例:
 
     EXIT
 .
@@ -3621,14 +3608,14 @@ Beispiel:
     FILESYSTEMS
 .
 Language=Polish
-    Displays information about the current file system for the selected
-    volume, and the supported file systems for formatting the volume.
+    Wyświetla informacje o bieżącym systemie plików w wybranym woluminie
+    i systemach plików obsługiwanych przy formatowaniu woluminu.
 
-Syntax:  FILESYSTEMS
+Składnia:  FILESYSTEMS
 
-    A volume must be selected for this operation to succeed.
+    Aby ta operacja się powiodła, musi być wybrany wolumin.
 
-Example:
+Przykład:
 
     FILESYSTEMS
 .
@@ -3705,14 +3692,14 @@ Example:
     FILESYSTEMS
 .
 Language=Taiwanese
-    Displays information about the current file system for the selected
-    volume, and the supported file systems for formatting the volume.
+    顯示所選取磁碟區之目前檔案系統的相關資訊，
+    及可支援的檔案系統，以格式化該磁碟區。
 
-Syntax:  FILESYSTEMS
+語法:  FILESYSTEMS
 
-    A volume must be selected for this operation to succeed.
+    您必須先選擇一個磁碟區，才能完成這個操作。
 
-Example:
+範例:
 
     FILESYSTEMS
 .
@@ -4317,66 +4304,56 @@ Examples:
     FORMAT RECOMMENDED OVERRIDE
 .
 Language=Taiwanese
-    Formats the specified volume for use with ReactOS.
+    格式化指定的磁碟區以供 ReactOS 使用。
 
-Syntax:  FORMAT [[FS=<FS>] [REVISION=<X.XX>] | RECOMMENDED] [LABEL=<"label">]
+語法:  FORMAT [[FS=<FS>] [REVISION=<X.XX>] | RECOMMENDED] [LABEL=<"label">]
                 [UNIT=<N>] [QUICK] [COMPRESS] [OVERRIDE] [DUPLICATE] [NOWAIT]
                 [NOERR]
 
-    FS=<FS>     Specifies the type of file system. If no file system is given,
-                the default file system displayed by the FILESYSTEMS command is
-                used.
+    FS=<FS>     指定檔案系統的類型。如果沒有提供檔案系統，則會使用
+                FILESYSTEMS 命令顯示的預設檔案系統。
 
     REVISION=<X.XX>
 
-                Specifies the file system revision (if applicable).
+                指定檔案系統修訂編號 (如適用)。
 
-    RECOMMENDED If specified, use the recommended file system and revision
-                instead of the default if a recommendation exists. The
-                recommended file system (if one exists) is displayed by the
-                FILESYSTEMS command.
+    RECOMMENDED 如果指定這個參數，請使用建議的檔案系統及修訂編號以取代
+                預設的修訂編號 (如果有建議的話)。
+                FILESYSTEMS 命令可顯示建議的檔案系統 (如果有建議設定)。
 
     LABEL=<"label">
 
-                Specifies the volume label.
+                指定磁碟區標籤。
 
-    UNIT=<N>    Overrides the default allocation unit size. Default settings
-                are strongly recommended for general use. The default
-                allocation unit size for a particular file system is displayed
-                by the FILESYSTEMS command.
+    UNIT=<N>    覆寫預設的配置單位大小。在一般使用情況下，強烈建議使用預設
+                設定。您可以使用 FILESYSTEMS 命令來顯示特定檔案系統的
+                預設配置單位大小。
 
-                NTFS compression is not supported for allocation unit sizes
-                above 4096.
+                NTFS 壓縮不支援超過 4096 的配置單位大小。
 
-    QUICK       Performs a quick format.
+    QUICK       進行快速格式化。
 
-    COMPRESS    NTFS only: Files created on the new volume will be compressed
-                by default.
+    COMPRESS    只限 NTFS: 預設情況下，在新磁碟區上建立的檔案將會被壓縮。
 
-    OVERRIDE    Forces the file system to dismount first if necessary. All
-                opened handles to the volume would no longer be valid.
+    OVERRIDE    如果有必要，會強制先解下磁碟區。所有已開啟的磁碟區
+                控制代碼將會失效。
 
-    DUPLICATE   UDF Only: This flag applies to UDF format, version 2.5 or
-                higher.
-                This flag instructs the format operation to duplicate the file
-                system meta-data to a second set of sectors on the disk. The
-                duplicate meta-data is used by applications, for example repair
-                or recovery applications. If the primary meta-data sectors are
-                found to be corrupted, the file system meta-data will be read
-                from the duplicate sectors.
+    DUPLICATE   只限 UDF: 這個旗標適用於 UDF 格式 2.5 或更高版本。
+                這個旗標會指示格式化操作將檔案系統的中繼資料複製到磁碟上的
+                第二組扇區。複製的中繼資料可被應用程式使用，例如修復或恢復
+                應用程式。如果系統發現主要中繼資料扇區損壞，則會從複製扇區
+                中讀取檔案系統中繼資料。
 
-    NOWAIT      Forces the command to return immediately while the format
-                process is still in progress. If NOWAIT is not specified,
-                DiskPart will display format progress in percentage.
+    NOWAIT      當格式化程序仍在進行中的時候，強制該命令立刻返回。
+                如果沒有指定 NOWAIT，DiskPart 將會以百分比顯示格式化進度。
 
-    NOERR       For scripting only. When an error is encountered, DiskPart
-                continues to process commands as if the error did not occur.
-                Without the NOERR parameter, an error causes DiskPart to exit
-                with an error code.
+    NOERR       只限指令碼。當發生錯誤時，DiskPart 會繼續處理命令，
+                如同沒有發生任何錯誤一樣。如果沒有使用 NOERR 參數，
+                錯誤會導致 DiskPart 結束，並傳回錯誤碼。
 
-    A volume must be selected for this operation to succeed.
+    您必須先選擇一個磁碟區，才能完成這個操作。
 
-Examples:
+範例:
 
     FORMAT FS=NTFS LABEL="New Volume" QUICK COMPRESS
     FORMAT RECOMMENDED OVERRIDE
@@ -4456,16 +4433,18 @@ Beispiel:
     HELP CREATE PARTITION PRIMARY
 .
 Language=Polish
-    Displays a list of the available commands or detailed help information for a
-    specified command.
+    Wyświetla listę dostępnych poleceń lub szczegółową pomoc dotyczącą
+    danego polecenia.
 
-Syntax:  HELP [<COMMAND>]
+Składnia:  HELP [<POLECENIE>]
 
-    <COMMAND>   The command for which to display detail help.
+    <POLECENIE>   Polecenie, dla którego ma zostać wyświetlona szczegółowa
+                  pomoc.
 
-    If no command is specified, HELP will display all possible commands.
+    Jeśli polecenie nie jest określone, polecenie HELP wyświetla
+    wszystkie możliwe polecenia.
 
-Example:
+Przykład:
 
     HELP
     HELP CREATE PARTITION PRIMARY
@@ -4561,16 +4540,15 @@ Example:
     HELP CREATE PARTITION PRIMARY
 .
 Language=Taiwanese
-    Displays a list of the available commands or detailed help information for a
-    specified command.
+    顯示可用的命令清單，或指定之命令的詳細說明。
 
-Syntax:  HELP [<COMMAND>]
+語法:  HELP [<COMMAND>]
 
-    <COMMAND>   The command for which to display detail help.
+    <COMMAND>   要顯示其詳細說明的命令。
 
-    If no command is specified, HELP will display all possible commands.
+    如果沒有指定命令，HELP 將會顯示所有可能的命令。
 
-Example:
+範例:
 
     HELP
     HELP CREATE PARTITION PRIMARY
@@ -4667,25 +4645,26 @@ Beispiel:
     INACTIVE
 .
 Language=Polish
-    On disks with master boot record (MBR) disk formatting, marks
-    the partition with focus as inactive.
+    Na dyskach zawierających formatowanie z głównym rekordem rozruchowym (MBR)
+    oznacza partycję, na której jest ustawiony fokus, jako nieaktywną.
 
-Syntax:  INACTIVE
+Składnia:  INACTIVE
 
-    The computer may start from the next option specified in the BIOS such as a
-    CD-ROM drive or a Pre-Boot eXecution Environment (PXE)-based boot
-    environment (such as Remote Installation Services (RIS)) when you restart
-    the computer.
+    Podczas ponownego uruchamiania komputer może zostać uruchomiony według
+    następnej opcji określonej w systemie BIOS, takiej jak stacja dysków
+    CD-ROM lub środowisko rozruchowe oparte na środowisku PXE (Pre-Boot
+    eXecution Environment), na przykład usługi instalacji zdalnej (RIS).
 
-    A partition must be selected for this operation to succeed.
+    Aby operacja się powiodła, musi być wybrana partycja.
 
-    Caution:
+    Uwaga:
 
-        Your computer might not start without an active partition. Do not mark
-        a system or boot partition as inactive unless you are an experienced
-        user with a thorough understanding of ReactOS storage management.
+        Komputer może nie zostać uruchomiony bez aktywnej partycji. Jeśli
+        użytkownik nie dysponuje doświadczeniem w zakresie zarządzania
+        magazynami systemu Windows, nie powinien oznaczać partycji systemowej
+        ani rozruchowej jako nieaktywnej.
 
-Example:
+Przykład:
 
     INACTIVE
 .
@@ -4828,25 +4807,24 @@ Example:
     INACTIVE
 .
 Language=Taiwanese
-    On disks with master boot record (MBR) disk formatting, marks
-    the partition with focus as inactive.
+    在具有主開機記錄 (MBR) 磁碟格式的磁碟上，
+    將已選擇的磁碟分割標示為非使用中。
 
-Syntax:  INACTIVE
+語法:  INACTIVE
 
-    The computer may start from the next option specified in the BIOS such as a
-    CD-ROM drive or a Pre-Boot eXecution Environment (PXE)-based boot
-    environment (such as Remote Installation Services (RIS)) when you restart
-    the computer.
+    當您重新啟動電腦時，電腦可以從您在 BIOS 中指定的下一個選項啟動，
+    例如 CD-ROM 光碟機或開機前執行環境 (PXE) 的開機環境
+    (例如，遠端安裝服務\r\n (RIS))。
 
-    A partition must be selected for this operation to succeed.
+    您必須先選擇一個磁碟分割，才能完成這個操作。
 
-    Caution:
+    注意:
 
-        Your computer might not start without an active partition. Do not mark
-        a system or boot partition as inactive unless you are an experienced
-        user with a thorough understanding of ReactOS storage management.
+        如果沒有使用中的磁碟分割，您的電腦將無法啟動。
+        除非您是非常熟悉 ReactOS 存放管理的進階使用者，
+        否則請勿將系統或開機磁碟分割標示為非使用中。
 
-Example:
+範例:
 
     INACTIVE
 .
@@ -4910,27 +4888,28 @@ Beispiel:
     LIST DISK
 .
 Language=Polish
-    Displays a list of disks.
+    Wyświetla listę dysków.
 
-Syntax:  LIST DISK
+Składnia:  LIST DISK
 
-    Displays a list of disks and information about them, such as their
-    size, amount of available free space, whether the disk is a basic
-    or dynamic disk, and whether the disk uses the master boot record
-    (MBR) or GUID partition table (GPT) partition style. The disk marked
-    with an asterisk (*) has focus.
+    Wyświetla listę dysków oraz dotyczące ich informacje, takie jak rozmiar,
+    ilość dostępnego wolnego miejsca, informację, czy dysk jest podstawowy
+    lub dynamiczny oraz czy dysk używa głównego rekordu rozruchowego (MBR)
+    lub stylu partycji tabeli partycji identyfikatora GUID (GPT). Fokus jest
+    ustawiony na dysku oznaczonym gwiazdką (*).
 
-    Note that the FREE column does not display the total amount of free
-    space on the disk, but rather the amount of usable free space left
-    on the disk. For example, if you have a 10GB disk with 4 primary
-    partitions covering 5GB, there is no usable free space left (no
-    more partitions may be created). Another example would be you have
-    a 10GB disk with 3 primary partitions and an extended partition
-    covering 8GB. The exended partition is of size 3GB with one logical
-    drive of size 2GB. The disk will show only 1GB as free - the
-    1GB of free space in the extended partition.
+    Należy zauważyć, że w kolumnie WOLNE nie jest wyświetlana całkowita
+    ilość wolnego miejsca na dysku, ale ilość pozostałego wolnego miejsca
+    na dysku zdatnego do użytku. Jeśli na przykład dysk o pojemności 10 GB
+    zawiera 4 partycje główne zajmujące 5 GB, na dysku nie ma wolnego
+    miejsca (nie można utworzyć następnych partycji). W innym przykładzie
+    dysk o pojemności 10 GB zawiera 3 partycje główne oraz partycję
+    rozszerzoną zajmujące 8 GB. Partycja rozszerzona ma rozmiar 3 GB
+    przy jednym dysku logicznym o rozmiarze 2 GB. Na dysku zostanie
+    pokazany tylko 1 GB wolnego miejsca i jest to 1 GB wolnego miejsca
+    w partycji rozszerzonej.
 
-Example:
+Przykład:
 
     LIST DISK
 .
@@ -5085,27 +5064,24 @@ Example:
     LIST DISK
 .
 Language=Taiwanese
-    Displays a list of disks.
+    顯示磁碟清單。
 
-Syntax:  LIST DISK
+語法:  LIST DISK
 
-    Displays a list of disks and information about them, such as their
-    size, amount of available free space, whether the disk is a basic
-    or dynamic disk, and whether the disk uses the master boot record
-    (MBR) or GUID partition table (GPT) partition style. The disk marked
-    with an asterisk (*) has focus.
+    顯示磁碟清單，以及它們的相關資訊，例如大小資訊、可用磁碟空間大小
+    (無論該磁碟是基本磁碟或動態磁碟)，及該磁碟是使用主開機記錄 (MBR) 或
+    GUID 磁碟分割表格 (GPT) 磁碟分割樣式。有標示星號 (*) 的磁碟是已選擇
+    的磁碟。
 
-    Note that the FREE column does not display the total amount of free
-    space on the disk, but rather the amount of usable free space left
-    on the disk. For example, if you have a 10GB disk with 4 primary
-    partitions covering 5GB, there is no usable free space left (no
-    more partitions may be created). Another example would be you have
-    a 10GB disk with 3 primary partitions and an extended partition
-    covering 8GB. The exended partition is of size 3GB with one logical
-    drive of size 2GB. The disk will show only 1GB as free - the
-    1GB of free space in the extended partition.
+    請注意，可用 行所標示的不是磁碟上的空間總大小，而是磁碟上剩餘的可用
+    空間大小。例如，您有一個 10GB 的磁碟，而磁碟包含了 4 個主要磁碟分割
+    (共使用了 5GB)，磁碟將沒有任何可用空間 (不能建立更多磁碟分割)。
+    再例如，您有一個 10GB 的磁碟，而磁碟包含了 3 個主要磁碟分割
+    和 1 個延伸磁碟分割 (共使用了 8GB)。如該延伸磁碟分割的大小是 3GB，
+    而且有 1 個 2GB 的邏輯磁碟分割。這時會顯示磁碟只有 1GB 的可用空間
+    (即延伸磁碟分割內的 1GB 可用空間)。
 
-Example:
+範例:
 
     LIST DISK
 .
@@ -5147,17 +5123,18 @@ Beispiel:
     LIST PARTITION
 .
 Language=Polish
-    Displays a list of partitions in the partition table for the selected disk.
+    Wyświetla listę partycji znajdujących się w tabeli partycji wybranego
+    dysku.
 
-Syntax:  LIST PARTITION
+Składnia:  LIST PARTITION
 
-    On dynamic disks, the partitions do not neccessarily correspond to the
-    dynamic volumes on the disk. Partitions may not be created or deleted
-    on dynamic disks.
+    Na dyskach dynamicznych partycje nie muszą być zgodne z woluminami
+    dynamicznymi na dysku. Partycji nie można tworzyć na dyskach dynamicznych
+    ani ich usuwać z takich dysków.
 
-    A disk must be selected for this operation to succeed.
+    Aby ta operacja się powiodła, musi być wybrany dysk.
 
-Example:
+Przykład:
 
     LIST PARTITION
 .
@@ -5252,17 +5229,16 @@ Example:
     LIST PARTITION
 .
 Language=Taiwanese
-    Displays a list of partitions in the partition table for the selected disk.
+    顯示已選擇的磁碟之磁碟分割表格中的磁碟分割清單。
 
-Syntax:  LIST PARTITION
+語法:  LIST PARTITION
 
-    On dynamic disks, the partitions do not neccessarily correspond to the
-    dynamic volumes on the disk. Partitions may not be created or deleted
-    on dynamic disks.
+    在動態磁碟上，磁碟分割不一定會對應到磁碟上的動態磁碟區。
+    您無法在動態磁碟上建立或刪除磁碟分割。
 
-    A disk must be selected for this operation to succeed.
+    您必須先選擇一個磁碟，才能完成這個操作。
 
-Example:
+範例:
 
     LIST PARTITION
 .
@@ -5293,12 +5269,12 @@ Beispiel:
     LIST VOLUME
 .
 Language=Polish
-    Displays a list of basic and dynamic volumes which are installed on the local
-    machine.
+    Wyświetla listę woluminów podstawowych i dynamicznych zainstalowanych
+    w komputerze lokalnym.
 
-Syntax:  LIST VOLUME
+Składnia:  LIST VOLUME
 
-Example:
+Przykład:
 
     LIST VOLUME
 .
@@ -5363,12 +5339,11 @@ Example:
     LIST VOLUME
 .
 Language=Taiwanese
-    Displays a list of basic and dynamic volumes which are installed on the local
-    machine.
+    顯示已安裝在本機上的基本磁碟區與動態磁碟區清單。
 
-Syntax:  LIST VOLUME
+語法:  LIST VOLUME
 
-Example:
+範例:
 
     LIST VOLUME
 .
@@ -5597,16 +5572,16 @@ Beispiel:
     ASSIGN f:
 .
 Language=Polish
-    Provides a way to add comments to a script.
+    Umożliwia dodawanie komentarzy do skryptu.
 
-Syntax:  REM
+Składnia:  REM
 
-Example:
+Przykład:
 
-    In this example script, REM is used to provide a comment about what the
-    script does.
+    W tym przykładowym skrypcie polecenie REM zostało użyte w celu dodania
+    komentarza opisującego działanie skryptu.
 
-    REM These commands set up 3 drives.
+    REM Te polecenia konfigurują trzy dyski.
     CREATE PARTITION PRIMARY SIZE=2048
     ASSIGN d:
     CREATE PARTITION EXTEND
@@ -5730,16 +5705,15 @@ Example:
     ASSIGN f:
 .
 Language=Taiwanese
-    Provides a way to add comments to a script.
+    提供將命令加入指令碼的方法。
 
-Syntax:  REM
+語法:  REM
 
-Example:
+範例:
 
-    In this example script, REM is used to provide a comment about what the
-    script does.
+    在這個範例指令碼中，REM 是用來提供關於該指令碼之功能的註解。
 
-    REM These commands set up 3 drives.
+    REM 這些命令可建立 3 部磁碟機。
     CREATE PARTITION PRIMARY SIZE=2048
     ASSIGN d:
     CREATE PARTITION EXTEND
@@ -5846,11 +5820,11 @@ Beispiel:
     RESCAN
 .
 Language=Polish
-    Locates new disks that may have been added to the computer.
+    Lokalizuje nowe dyski, które można dodać do komputera.
 
-Syntax:  RESCAN
+Składnia:  RESCAN
 
-Example:
+Przykład:
 
     RESCAN
 .
@@ -5909,11 +5883,11 @@ Example:
     RESCAN
 .
 Language=Taiwanese
-    Locates new disks that may have been added to the computer.
+    找出可能已加入電腦的新磁碟。
 
-Syntax:  RESCAN
+語法:  RESCAN
 
-Example:
+範例:
 
     RESCAN
 .
@@ -6083,40 +6057,44 @@ Beispiele:
     SELECT DISK=PCIROOT(0)#PCI(0100)#ATA(C00T00L01)
 .
 Language=Polish
-    Selects the specified disk and shifts the focus to it.
+    Wybiera określony dysk i przenosi na niego fokus.
 
-Syntax:  SELECT DISK=<N>
-         SELECT DISK=SYSTEM
-         SELECT DISK=NEXT
-         SELECT DISK=<Path>
+Składnia:  SELECT DISK=<N>
+           SELECT DISK=SYSTEM
+           SELECT DISK=NEXT
+           SELECT DISK=<Ścieżka>
 
     DISK=<N>
-                The DiskPart disk index number of the disk to receive
-                focus.
+                Numer indeksu dysku w programie DiskPart odpowiadający
+                dyskowi, na którym ma zostać ustawiony fokus.
 
-    DISK=<Path>
-                The location path of the disk to receive focus.
+    DISK=<Ścieżka>
+                Ścieżka lokalizacji dysku, na którym ma zostać
+                ustawiony fokus.
 
     DISK=SYSTEM
-                On BIOS machines, BIOS disk 0 will receive focus.
-                On EFI machines, the disk containing the ESP partition
-                used for the current boot will receive focus. On EFI
-                machines, if there is no ESP, or there is more than
-                one ESP present, or the machine is booted from Windows PE,
-                the command will fail.
+                Na komputerach z systemem BIOS fokus zostanie ustawiony na
+                dysku 0 systemu BIOS. Na komputerach z interfejsem EFI
+                fokus zostanie ustawiony na dysku zawierającym partycję ESP
+                użytą do wykonania bieżącego rozruchu. Wykonanie polecenia
+                nie powiedzie się na komputerach z interfejsem EFI,
+                na których nie ma partycji ESP lub jest kilka partycji ESP,
+                oraz gdy rozruch komputera nastąpił w środowisku Windows PE.
 
     DISK=NEXT
-                Once a disk is selected, this command is used to iterate
-                over all disks in the disk list. The next disk in the list
-                will receive focus. If the next disk is the start of the
-                enumeration, the command will fail and no disk will have
-                focus.
+                Po wybraniu dysku to polecenie jest używane do przejścia
+                przez wszystkie dyski znajdujące się na liście dysków.
+                Fokus zostanie ustawiony na następnym dysku na liście.
+                Jeśli następny dysk jest na początku wyliczania, wykonanie
+                polecenia nie powiedzie się i fokus nie zostanie ustawiony
+                na żadnym dysku.
 
-    If no options are specified, the select command lists the disk that
-    currently has the focus. You can view the DiskPart index numbers
-    for all disks on the computer by using the LIST DISK command.
+    Jeśli żadne opcje nie są określone, polecenie SELECT wyświetla dysk,
+    na którym obecnie jest ustawiony fokus. Numery indeksu w programie
+    DiskPart odpowiadające wszystkim dyskom w komputerze można wyświetlić
+    za pomocą polecenia LIST DISK.
 
-Example:
+Przykłady:
 
     SELECT DISK=1
     SELECT DISK=SYSTEM
@@ -6370,40 +6348,36 @@ Example:
     SELECT DISK=PCIROOT(0)#PCI(0100)#ATA(C00T00L01)
 .
 Language=Taiwanese
-    Selects the specified disk and shifts the focus to it.
+    選擇指定的磁碟，並將焦點轉移到該磁碟。
 
-Syntax:  SELECT DISK=<N>
-         SELECT DISK=SYSTEM
-         SELECT DISK=NEXT
-         SELECT DISK=<Path>
+語法:   SELECT DISK=<N>
+        SELECT DISK=SYSTEM
+        SELECT DISK=NEXT
+        SELECT DISK=<Path>
 
     DISK=<N>
-                The DiskPart disk index number of the disk to receive
-                focus.
+                要接收焦點之磁碟的磁碟號碼。
 
     DISK=<Path>
-                The location path of the disk to receive focus.
+                要接收焦點之磁碟的位置的路徑。
 
     DISK=SYSTEM
-                On BIOS machines, BIOS disk 0 will receive focus.
-                On EFI machines, the disk containing the ESP partition
-                used for the current boot will receive focus. On EFI
-                machines, if there is no ESP, or there is more than
-                one ESP present, or the machine is booted from Windows PE,
-                the command will fail.
+                在使用 BIOS 的電腦中，BIOS 磁碟 0 會接收焦點。
+                在使用 EFI 的電腦中，包含用於目前啟動程序的 ESP 分區的
+                磁碟會接收焦點。如果在使用 EFI 的電腦中沒有 ESP 分區、
+                有多於一個 ESP 分區，或者電腦是從 Windows PE 啟動，
+                命令將會失敗。
 
     DISK=NEXT
-                Once a disk is selected, this command is used to iterate
-                over all disks in the disk list. The next disk in the list
-                will receive focus. If the next disk is the start of the
-                enumeration, the command will fail and no disk will have
-                focus.
+                在選擇磁碟後，這個命令是用以逐一查看磁碟清單中的
+                所有磁碟。清單中的下一個磁碟將會接收焦點。
+                如果下一個磁碟是列舉的開頭，命令將會失敗，且沒有任何
+                磁碟會有焦點。
 
-    If no options are specified, the select command lists the disk that
-    currently has the focus. You can view the DiskPart index numbers
-    for all disks on the computer by using the LIST DISK command.
+    如果未指定任何選項，Select 命令會列出目前聚焦中的磁碟。
+    您可以使用 LIST DISK 命令，檢視電腦上所有磁碟的 DiskPart 索引號碼。
 
-Example:
+範例:
 
     SELECT DISK=1
     SELECT DISK=SYSTEM
@@ -6461,23 +6435,23 @@ Beispiel:
     SELECT PARTITION=1
 .
 Language=Polish
-    Selects the specified partition and shifts the focus to it.
+    Wybiera określoną partycję i przenosi na nią fokus.
 
-Syntax:  SELECT PARTITION=<N>
+Składnia:  SELECT PARTITION=<N>
 
     PARTITION=<N>
 
-                The number of the partition to receive the focus.
+                Numer partycji, na której ma zostać ustawiony fokus.
 
-    If no partition is specified, the select command lists the current
-    partition with focus. You can specify the partition by its number. You can
-    view the numbers of all partitions on the current disk by using the list
-    partition command.
+    Jeśli żadna partycja nie jest określona, polecenie SELECT wyświetla
+    partycję, na której obecnie jest ustawiony fokus. Partycję można
+    określić, podając jej numer. Wszystkie numery partycji na bieżącym dysku
+    można wyświetlić za pomocą polecenia LIST PARTITION.
 
-    You must first select a disk using the DiskPart select disk command before
-    you can select a partition.
+    Przed wybraniem partycji należy wybrać dysk przy użyciu polecenia
+    SELECT DISK programu DiskPart.
 
-Example:
+Przykład:
 
     SELECT PARTITION=1
 .
@@ -6608,23 +6582,22 @@ Example:
     SELECT PARTITION=1
 .
 Language=Taiwanese
-    Selects the specified partition and shifts the focus to it.
+    選取指定的磁碟分割，並將焦點轉移到該磁碟分割。
 
-Syntax:  SELECT PARTITION=<N>
+語法:  SELECT PARTITION=<N>
 
     PARTITION=<N>
 
-                The number of the partition to receive the focus.
+                要接收焦點之磁碟分割的磁碟分割號碼。
 
-    If no partition is specified, the select command lists the current
-    partition with focus. You can specify the partition by its number. You can
-    view the numbers of all partitions on the current disk by using the list
-    partition command.
+    如果未指定任何選項，Select 命令會列出目前聚焦中的磁碟分割。
+    您可以使用磁碟分割的號碼來指定它。您可以使用 list partition 命令
+    來檢視目前磁碟上之所有磁碟分割的號碼。
 
-    You must first select a disk using the DiskPart select disk command before
-    you can select a partition.
+    在選擇磁碟分割之前，您必須先使用 DiskPart 的 select disk 命令
+    來選擇磁碟。
 
-Example:
+範例:
 
     SELECT PARTITION=1
 .
@@ -6681,22 +6654,23 @@ Beispiel:
     SELECT VOLUME=C:\\MountH
 .
 Language=Polish
-    Selects the specified volume and shifts the focus to it.
+    Wybiera określony wolumin i ustawia na nim fokus.
 
-Syntax:  SELECT VOLUME={<N> | <D>}
+Składnia:  SELECT VOLUME={<N> | <D>}
 
-    VOLUME=<N>  The number of the volume to receive the focus.
+    VOLUME=<N>  Numer woluminu, na którym ma zostać ustawiony fokus.
 
-    VOLUME=<D>  The drive letter or mounted folder path of the volume
-                to receive the focus.
+    VOLUME=<D>  Litera dysku lub ścieżka zainstalowanego folderu woluminu,
+                na którym ma zostać ustawiony fokus.
 
-    If no volume is specified, the select command lists the current volume with
-    focus. You can specify the volume by number, drive letter, or mounted folder
-    path. On a basic disk, selecting a volume also gives the corresponding
-    partition focus. You can view the numbers of all volumes on the computer by
-    using the list volume command.
+    Jeśli żaden wolumin nie jest określony, polecenie SELECT wyświetla
+    wolumin, na którym obecnie jest ustawiony fokus. Wolumin można określić,
+    podając jego numer, literę dysku lub ścieżkę zainstalowanego woluminu.
+    Na dysku podstawowym fokus jest ustawiany również na partycji
+    odpowiadającej woluminowi. Numery wszystkich woluminów na komputerze można
+    wyświetlić przy użyciu polecenia LIST VOLUME.
 
-Example:
+Przykład:
 
     SELECT VOLUME=1
     SELECT VOLUME=C
@@ -6835,22 +6809,20 @@ Example:
     SELECT VOLUME=C:\\MountH
 .
 Language=Taiwanese
-    Selects the specified volume and shifts the focus to it.
+    選取指定的磁碟區，並將焦點移到該磁碟區。
 
-Syntax:  SELECT VOLUME={<N> | <D>}
+語法:  SELECT VOLUME={<N> | <D>}
 
-    VOLUME=<N>  The number of the volume to receive the focus.
+    VOLUME=<N>  要接收焦點的磁碟區編號。
 
-    VOLUME=<D>  The drive letter or mounted folder path of the volume
-                to receive the focus.
+    VOLUME=<D>  要接收焦點的磁碟區代號或掛接點路徑。
 
-    If no volume is specified, the select command lists the current volume with
-    focus. You can specify the volume by number, drive letter, or mounted folder
-    path. On a basic disk, selecting a volume also gives the corresponding
-    partition focus. You can view the numbers of all volumes on the computer by
-    using the list volume command.
+    如果沒有指定磁碟區，select 命令將列出目前聚焦中的磁碟區。您可以根據編號、
+    磁碟機代號或掛接點路徑指定磁碟區。在基本磁碟中，選擇磁碟區同時也會給予
+    相對的磁碟分割焦點。您可以使用 list volume 命令以檢視所有電腦中磁碟區的
+    編號。
 
-Example:
+範例:
 
     SELECT VOLUME=1
     SELECT VOLUME=C
@@ -7075,84 +7047,92 @@ Beispiel:
     SET ID=ebd0a0a2-b9e5-4433-87c0-68b6b72699c7
 .
 Language=Polish
-    Changes the partition type field for the partition with focus.
+    Zmienia zawartość pola typu partycji dla partycji, na której ustawiony
+    jest fokus.
 
-Syntax:  SET ID={<BYTE> | <GUID>} [OVERRIDE] [NOERR]
+Składnia:  SET ID={<BYTE> | <GUID>} [OVERRIDE] [NOERR]
 
     ID={<BYTE> | <GUID>}
 
-                Specifies the new partition type.
-                For master boot record (MBR) disks, you can specify a partition
-                type byte, in hexadecimal form, for the partition. Any
-                partition type byte can be specified with this parameter except
-                for type 0x42 (LDM partition). Note that the leading '0x' is 
-                omitted when specifying the hexadecimal partition type.
+                Określa nowy typ partycji.
+                W przypadku dysków z głównym rekordem rozruchowym (MBR)
+                można określić bajt typu partycji w formie szesnastkowej.
+                Za pomocą tego parametru można określić dowolny bajt typu
+                partycji z wyjątkiem typu 0x42 (partycja LDM). W przypadku
+                określania szesnastkowego typu partycji znaki '0x'
+                na początku są pomijane.
 
-                For GUID partition table (GPT) disks you can specify a
-                partition type GUID for the partition. Recognized GUIDs
-                include:
+                W przypadku dysków z tablicą partycji GUID (GPT) można
+                określić identyfikator GUID typu partycji. Rozpoznawane
+                identyfikatory GUID są następujące:
 
-                    EFI System partition:
+                    Partycja systemowa EFI:
                         c12a7328-f81f-11d2-ba4b-00a0c93ec93b
 
-                    Basic data partition:
+                    Podstawowa partycja danych:
                         ebd0a0a2-b9e5-4433-87c0-68b6b72699c7
 
-                Any partition type GUID can be specified with this parameter
-                except for the following:
+                Za pomocą tego parametru można określić dowolny identyfikator
+                GUID typu partycji z wyjątkiem następujących:
 
-                    Microsoft Reserved partition:
+                    Partycja zastrzeżona firmy Microsoft:
                         e3c9e316-0b5c-4db8-817d-f92df00215a
 
-                    LDM Metadata partition on a dynamic disk:
+                    Partycja metadanych LDM na dysku dynamicznym:
                         5808c8aa-7e8f-42e0-85d2-e1e90434cfb3
 
-                    LDM Data partition on a dynamic disk:
+                    Partycja danych LDM na dysku dynamicznym:
                         af9b60a0-1431-4f62-bc68-3311714a69ad
 
-                    Cluster Metadata partition:
+                    Partycja metadanych klastra:
                         db97dba9-0840-4bae-97f0-ffb9a327c7e1
 
 
-                Other than the limitations mentioned, DiskPart otherwise does
-                not check the partition type for validity except to ensure that
-                it is a byte in hexadecimal form or a GUID.
+                Oprócz wspomnianych ograniczeń program DiskPart nie sprawdza
+                poprawności typu partycji. Sprawdza jedynie, czy podana
+                wartość ma postać szesnastkową lub jest identyfikatorem GUID.
 
-    OVERRIDE    Enables DiskPart to force the file system on the volume to
-                dismount before changing the partition type. When changing
-                the partition type, DiskPart will attempt to lock and dismount
-                the file system on the volume. If this parameter is not specified,
-                and the call to lock the file system fails, (because some other
-                application has an open handle to the volume), the entire
-                operation will fail. When this parameter is specified, the
-                dismount is forced even if the call to lock the file system
-                fails. When a file system is dismounted, all opened handles to
-                the volume will become invalid.
+    OVERRIDE    Powoduje, że przed zmianą typu partycji program DiskPart
+                wymusza odinstalowanie systemu plików w woluminie. Podczas
+                zmiany typu partycji program DiskPart podejmie próbę
+                zablokowania i odinstalowania systemu plików w woluminie.
+                Jeśli nie określono tego parametru, a wywołanie w celu
+                zablokowania systemu plików nie powiedzie się (ponieważ inna
+                aplikacja korzysta z otwartego dojścia do woluminu), cała
+                operacja zakończy się niepowodzeniem. Jeśli określono ten
+                parametr, odinstalowanie jest wymuszane nawet wtedy,
+                gdy wywołanie w celu zablokowania systemu plików nie
+                powiedzie się. Po odinstalowaniu systemu plików wszystkie
+                otwarte dojścia do woluminu staną się nieprawidłowe.
 
-    NOERR       For scripting only. When an error is encountered, DiskPart
-                continues to process commands as if the error did not occur.
-                Without the NOERR parameter, an error causes DiskPart to exit
-                with an error code.
+    NOERR       Tylko do obsługi skryptów. Po wystąpieniu błędu program
+                DiskPart kontynuuje przetwarzanie poleceń, tak jakby błąd.
+                nie wystąpił. W przypadku braku parametru NOERR błąd
+                powoduje zakończenie działania programu DiskPart
+                i zwrócenie kodu błędu.
 
-    Intended for Original Equipment Manufacturer (OEM) use only.
+    Polecenie przeznaczone tylko do użytku przez producentów oryginalnego
+    sprzętu (OEM).
 
-    A partition must be selected for this operation to succeed.
+    Aby ta operacja się powiodła, musi być wybrana partycja.
 
-    Caution:
+    Uwaga:
 
-        Changing partition type fields with this parameter might cause your
-        computer to fail or be unable to start up. Unless you are an OEM or an
-        IT professional experienced with GPT disks, do not change partition
-        type fields on GPT disks using this parameter. Instead, always use the
-        CREATE PARTITION EFI command to create EFI System partitions, the
-        CREATE PARTITION MSR command to create Microsoft Reserved partitions,
-        and the CREATE PARTITION PRIMARY command without the ID parameter to
-        create primary partitions on GPT disks.
+        Zmiana pól typu partycji z tym parametrem może sprawić, że komputer
+        ulegnie awarii lub nie będzie można go uruchomić. Jeśli użytkownik
+        nie jest producentem OEM ani informatykiem dysponującym
+        doświadczeniem w zakresie dysków GPT, nie powinien zmieniać pól typu
+        partycji na dyskach GPT przy użyciu tego parametru. Zamiast tego
+        należy zawsze używać polecenia CREATE PARTITION EFI do tworzenia
+        partycji systemowych EFI, polecenia CREATE PARTITION MSR
+        do tworzenia partycji zastrzeżonej firmy Microsoft oraz polecenia
+        CREATE PARTITION PRIMARY bez parametru ID do tworzenia partycji
+        podstawowych na dyskach GPT.
 
-    This command does not work on dynamic disks nor on Microsoft Reserved
-    partitions.
+    To polecenie nie działa na dyskach dynamicznych ani na partycjach
+    zastrzeżonych firmy Microsoft.
 
-Example:
+Przykłady:
     SET ID=07 OVERRIDE
     SET ID=ebd0a0a2-b9e5-4433-87c0-68b6b72699c7
 .
@@ -7649,84 +7629,74 @@ Example:
     SET ID=ebd0a0a2-b9e5-4433-87c0-68b6b72699c7
 .
 Language=Taiwanese
-    Changes the partition type field for the partition with focus.
+    更改已選擇的磁碟分割的磁碟分割類型欄位。
 
-Syntax:  SET ID={<BYTE> | <GUID>} [OVERRIDE] [NOERR]
+語法:  SET ID={<BYTE> | <GUID>} [OVERRIDE] [NOERR]
 
     ID={<BYTE> | <GUID>}
 
-                Specifies the new partition type.
-                For master boot record (MBR) disks, you can specify a partition
-                type byte, in hexadecimal form, for the partition. Any
-                partition type byte can be specified with this parameter except
-                for type 0x42 (LDM partition). Note that the leading '0x' is 
-                omitted when specifying the hexadecimal partition type.
+                指定新磁碟分割類型。
+                對於主開機記錄 (MBR) 磁碟，您可以使用十六進位格式指定該磁碟分割
+                的磁碟分割類型位元組。您可以使用此參數指定任何磁碟分割類型位元組，
+                但類型 42 (LDM 磁碟分割) 除外。
+                請注意，在指定十六進位格式的磁碟分割類型會略過開頭的 '0x'。
 
-                For GUID partition table (GPT) disks you can specify a
-                partition type GUID for the partition. Recognized GUIDs
-                include:
+                對於 GUID 磁碟分割表格 (GPT) 磁碟，您可以為想要建立的磁碟分割
+                指定磁碟分割類型 GUID。可識別的 GUID 包括:
 
-                    EFI System partition:
+                    EFI 系統磁碟分割:
                         c12a7328-f81f-11d2-ba4b-00a0c93ec93b
 
-                    Basic data partition:
+                    基本資料磁碟分割:
                         ebd0a0a2-b9e5-4433-87c0-68b6b72699c7
 
-                Any partition type GUID can be specified with this parameter
-                except for the following:
+                您可以使用這個參數指定任何磁碟分割類型 GUID，
+                但下列磁碟分割類型除外:
 
-                    Microsoft Reserved partition:
+                    Microsoft 保留磁碟分割:
                         e3c9e316-0b5c-4db8-817d-f92df00215a
 
-                    LDM Metadata partition on a dynamic disk:
+                    動態磁碟上的 LDM 中繼資料磁碟分割:
                         5808c8aa-7e8f-42e0-85d2-e1e90434cfb3
 
-                    LDM Data partition on a dynamic disk:
+                    動態磁碟上的 LDM 資料磁碟分割:
                         af9b60a0-1431-4f62-bc68-3311714a69ad
 
-                    Cluster Metadata partition:
+                    叢集中繼資料磁碟分割:
                         db97dba9-0840-4bae-97f0-ffb9a327c7e1
 
 
-                Other than the limitations mentioned, DiskPart otherwise does
-                not check the partition type for validity except to ensure that
-                it is a byte in hexadecimal form or a GUID.
+                除了上述限制之外，DiskPart 不會檢查磁碟分割類型的有效性，
+                但會確保磁碟分割類型是否為以十六進位格式或 GUID 表示的位元組。
 
-    OVERRIDE    Enables DiskPart to force the file system on the volume to
-                dismount before changing the partition type. When changing
-                the partition type, DiskPart will attempt to lock and dismount
-                the file system on the volume. If this parameter is not specified,
-                and the call to lock the file system fails, (because some other
-                application has an open handle to the volume), the entire
-                operation will fail. When this parameter is specified, the
-                dismount is forced even if the call to lock the file system
-                fails. When a file system is dismounted, all opened handles to
-                the volume will become invalid.
+    OVERRIDE    讓 DiskPart 在更改磁碟分割類型之前先強制卸載磁碟區上的檔案系統。
+                更改磁碟分割類型時，DiskPart 會嘗試鎖定並卸載磁碟區上的檔案系統。
+                若未指定這個參數，而且鎖定檔案系統的呼叫失敗 (因為某些其他
+                應用程式擁有磁碟區的已開啟控制代碼)，整個操作將會失敗。
+                指定這個參數時，即使鎖定檔案系統的呼叫失敗，仍會強制執行卸載。
+                卸載檔案系統之後，磁碟區的所有已開啟控制代碼會變為無效。
 
-    NOERR       For scripting only. When an error is encountered, DiskPart
-                continues to process commands as if the error did not occur.
-                Without the NOERR parameter, an error causes DiskPart to exit
-                with an error code.
+    NOERR       只限指令碼。當發生錯誤時，DiskPart 會繼續處理命令，
+                如同沒有發生任何錯誤一樣。如果沒有使用 NOERR 參數，
+                錯誤會導致 DiskPart 結束，並傳回錯誤碼。
 
-    Intended for Original Equipment Manufacturer (OEM) use only.
+    預期只供原始設備製造商 (OEM) 使用。
 
-    A partition must be selected for this operation to succeed.
+    您必須先選擇磁碟分割，才能完成這個操作。
 
-    Caution:
+    注意:
 
-        Changing partition type fields with this parameter might cause your
-        computer to fail or be unable to start up. Unless you are an OEM or an
-        IT professional experienced with GPT disks, do not change partition
-        type fields on GPT disks using this parameter. Instead, always use the
-        CREATE PARTITION EFI command to create EFI System partitions, the
-        CREATE PARTITION MSR command to create Microsoft Reserved partitions,
-        and the CREATE PARTITION PRIMARY command without the ID parameter to
-        create primary partitions on GPT disks.
+        使用這個參數更改磁碟分割類型欄位，可能會造成您的電腦失敗或無法啟動。
+        除非您是熟悉 GPT 磁碟的 OEM 或 IT 專業人員，否則請勿在 GPT 磁碟上
+        更改磁碟分割類型欄位時使用這個參數。相反地，您應該使用
+        CREATE PARTITION EFI 命令來建立 EFI 系統磁碟分割、使用
+        CREATE PARTITION MSR 命令來建立 Microsoft 保留磁碟分割，及使用
+        CREATE PARTITION PRIMARY 命令 (不使用 ID 參數) 在 GPT 磁碟上
+        建立主要磁碟分割。
 
-    This command does not work on dynamic disks nor on Microsoft Reserved
-    partitions.
+    這個命令不適用於動態磁碟或 Microsoft 保留磁碟分割。
 
-Example:
+範例:
     SET ID=07 OVERRIDE
     SET ID=ebd0a0a2-b9e5-4433-87c0-68b6b72699c7
 .
@@ -7831,27 +7801,28 @@ Beispiel:
     UNIQUEID DISK ID=baf784e7-6bbd-4cfb-aaac-e86c96e166ee
 .
 Language=Polish
-    Displays or sets the GUID partition table (GPT) identifier or master boot
-    record (MBR) signature for the disk with focus.
+    Wyświetla lub ustawia identyfikator tabeli partycji GUID (GPT) lub podpis
+    głównego rekordu rozruchowego (MBR) dla dysku z fokusem.
 
-Syntax:  UNIQUEID DISK [ID={<DWORD> | <GUID>}]  [NOERR]
+Składnia:  UNIQUEID DISK [ID={<DWORD> | <GUID>}]  [NOERR]
 
     ID={<DWORD> | <GUID>}
 
-                For MBR disks, you can specify a four-byte (DWORD) value in
-                hexadecimal form for the signature.
+                Dla dysków MBR można określić czterobajtową wartość (DWORD)
+                podpisu w postaci szesnastkowej.
 
-                For GPT disks, specify a GUID for the identifier.
+                Dla dysków GPT należy określić ident. GUID jako identyfikator.
 
-    NOERR       For scripting only. When an error is encountered, DiskPart
-                continues to process commands as if the error did not occur.
-                Without the NOERR parameter, an error causes DiskPart to exit
-                with an error code.
+    NOERR       Tylko dla skryptów. W przypadku wystąpienia błędu program
+                DiskPart kontynuuje przetwarzanie poleceń, tak jakby błąd
+                nie wystąpił. W przypadku braku parametru NOERR błąd
+                powoduje zakończenie działania programu DiskPart i zwrócenie
+                kodu błędu.
 
-    A disk must be selected for this operation to succeed.  This command works
-    on basic and dynamic disks.
+    Aby ta operacja powiodła się, musi być wybrany dysk. To polecenie działa
+    dla dysków podstawowych i dynamicznych.
 
-Example:
+Przykład:
 
     UNIQUEID DISK
     UNIQUEID DISK ID=5f1b2c36
@@ -8020,27 +7991,26 @@ Example:
     UNIQUEID DISK ID=baf784e7-6bbd-4cfb-aaac-e86c96e166ee
 .
 Language=Taiwanese
-    Displays or sets the GUID partition table (GPT) identifier or master boot
-    record (MBR) signature for the disk with focus.
+    顯示或設定焦點所在磁碟的 GUID 磁碟分割表格 (GPT) 識別碼
+    或主開機記錄 (MBR) 簽章。
 
-Syntax:  UNIQUEID DISK [ID={<DWORD> | <GUID>}]  [NOERR]
+語法:  UNIQUEID DISK [ID={<DWORD> | <GUID>}]  [NOERR]
 
     ID={<DWORD> | <GUID>}
 
-                For MBR disks, you can specify a four-byte (DWORD) value in
-                hexadecimal form for the signature.
+                在主開機記錄 (MBR) 磁碟上，您可以對簽章指定十六進位形式的
+                四位元組 (DWORD) 值。
 
-                For GPT disks, specify a GUID for the identifier.
+                在 GUID 磁碟分割表格 (GPT) 磁碟上，指定識別元的 GUID。
 
-    NOERR       For scripting only. When an error is encountered, DiskPart
-                continues to process commands as if the error did not occur.
-                Without the NOERR parameter, an error causes DiskPart to exit
-                with an error code.
+    NOERR       只限指令碼。當發生錯誤時，DiskPart 會繼續處理命令，
+                如同沒有發生任何錯誤一樣。如果沒有使用 NOERR 參數，
+                錯誤會導致 DiskPart 結束，並傳回錯誤碼。
 
-    A disk must be selected for this operation to succeed.  This command works
-    on basic and dynamic disks.
+    您必須先選擇一個磁碟，才能完成這個操作。這個命令適用於基本磁碟及
+    動態磁碟。
 
-Example:
+範例:
 
     UNIQUEID DISK
     UNIQUEID DISK ID=5f1b2c36

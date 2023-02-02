@@ -81,6 +81,7 @@ extern void func_RtlpApplyLengthFunction(void);
 extern void func_RtlpEnsureBufferSize(void);
 extern void func_RtlQueryTimeZoneInformation(void);
 extern void func_RtlReAllocateHeap(void);
+extern void func_RtlRemovePrivileges(void);
 extern void func_RtlUnicodeStringToAnsiString(void);
 extern void func_RtlUnicodeStringToCountedOemString(void);
 extern void func_RtlUnicodeToOemN(void);
@@ -90,6 +91,7 @@ extern void func_RtlxUnicodeStringToAnsiSize(void);
 extern void func_RtlxUnicodeStringToOemSize(void);
 extern void func_StackOverflow(void);
 extern void func_TimerResolution(void);
+extern void func_UserModeException(void);
 
 const struct test winetest_testlist[] =
 {
@@ -171,6 +173,7 @@ const struct test winetest_testlist[] =
     { "RtlpEnsureBufferSize",           func_RtlpEnsureBufferSize },
     { "RtlQueryTimeZoneInformation",    func_RtlQueryTimeZoneInformation },
     { "RtlReAllocateHeap",              func_RtlReAllocateHeap },
+    { "RtlRemovePrivileges",            func_RtlRemovePrivileges },
     { "RtlUnicodeStringToAnsiSize",     func_RtlxUnicodeStringToAnsiSize }, /* For some reason, starting test name with Rtlx hides it */
     { "RtlUnicodeStringToAnsiString",   func_RtlUnicodeStringToAnsiString },
     { "RtlUnicodeStringToCountedOemString", func_RtlUnicodeStringToCountedOemString },
@@ -180,6 +183,7 @@ const struct test winetest_testlist[] =
     { "RtlValidateUnicodeString",       func_RtlValidateUnicodeString },
     { "StackOverflow",                  func_StackOverflow },
     { "TimerResolution",                func_TimerResolution },
+    { "UserModeException",              func_UserModeException },
 
     { 0, 0 }
 };
