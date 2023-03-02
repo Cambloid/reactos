@@ -1,17 +1,22 @@
 #pragma once
 
-#include "available.h"
+#include "appinfo.h"
 
 #include <windef.h>
 #include <atlsimpcoll.h>
 
 // Settings dialog (settingsdlg.cpp)
-VOID CreateSettingsDlg(HWND hwnd);
+VOID
+CreateSettingsDlg(HWND hwnd);
 
-//Main window
-VOID MainWindowLoop(INT nShowCmd);
+// Main window
+VOID
+MainWindowLoop(class CAppDB *db, INT nShowCmd);
 
 // Download dialogs
-VOID DownloadApplicationsDB(LPCWSTR lpUrl, BOOL IsOfficial);
-BOOL DownloadApplication(CAvailableApplicationInfo* pAppInfo);
-BOOL DownloadListOfApplications(const ATL::CSimpleArray<CAvailableApplicationInfo>& AppsList, BOOL bIsModal);
+VOID
+DownloadApplicationsDB(LPCWSTR lpUrl, BOOL IsOfficial);
+BOOL
+DownloadApplication(CAppInfo *pAppInfo);
+BOOL
+DownloadListOfApplications(const CAtlList<CAppInfo *> &AppsList, BOOL bIsModal);

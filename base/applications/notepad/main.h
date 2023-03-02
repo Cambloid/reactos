@@ -44,8 +44,7 @@ typedef enum
     ENCODING_UTF8BOM =  4
 } ENCODING;
 
-// #define MIN_ENCODING   0
-// #define MAX_ENCODING   3
+#define ENCODING_DEFAULT    ENCODING_UTF8 // ENCODING_ANSI
 
 typedef enum
 {
@@ -100,5 +99,5 @@ void NOTEPAD_LoadSettingsFromRegistry(void);
 void NOTEPAD_SaveSettingsToRegistry(void);
 
 /* from main.c */
-BOOL NOTEPAD_FindNext(FINDREPLACE *, BOOL , BOOL );
+BOOL NOTEPAD_FindNext(FINDREPLACE *pFindReplace, BOOL bReplace, BOOL bShowAlert);
 VOID NOTEPAD_EnableSearchMenu(VOID);

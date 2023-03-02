@@ -5,7 +5,7 @@
  *  Copyright 1997,98 Marcel Baur <mbaur@g26.ethz.ch>
  *  Copyright 2002 Sylvain Petreolle <spetreolle@yahoo.fr>
  *  Copyright 2002 Andriy Palamarchuk
- *  Copyright 2020 Katayama Hirofumi MZ
+ *  Copyright 2020-2023 Katayama Hirofumi MZ
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -33,10 +33,11 @@ static ATOM aFINDMSGSTRING;
 
 VOID NOTEPAD_EnableSearchMenu()
 {
-    EnableMenuItem(Globals.hMenu, CMD_SEARCH,
-                   MF_BYCOMMAND | ((GetWindowTextLength(Globals.hEdit) == 0) ? MF_DISABLED | MF_GRAYED : MF_ENABLED));
-    EnableMenuItem(Globals.hMenu, CMD_SEARCH_NEXT,
-                   MF_BYCOMMAND | ((GetWindowTextLength(Globals.hEdit) == 0) ? MF_DISABLED | MF_GRAYED : MF_ENABLED));
+    BOOL bEmpty = (GetWindowTextLengthW(Globals.hEdit) == 0);
+    UINT uEnable = MF_BYCOMMAND | (bEmpty ? MF_GRAYED : MF_ENABLED);
+    EnableMenuItem(Globals.hMenu, CMD_SEARCH, uEnable);
+    EnableMenuItem(Globals.hMenu, CMD_SEARCH_NEXT, uEnable);
+    EnableMenuItem(Globals.hMenu, CMD_SEARCH_PREV, uEnable);
 }
 
 /***********************************************************************
@@ -83,9 +84,10 @@ static int NOTEPAD_MenuCommand(WPARAM wParam)
     case CMD_TIME_DATE:  DIALOG_EditTimeDate(); break;
 
     case CMD_SEARCH:      DIALOG_Search(); break;
-    case CMD_SEARCH_NEXT: DIALOG_SearchNext(); break;
+    case CMD_SEARCH_NEXT: DIALOG_SearchNext(TRUE); break;
     case CMD_REPLACE:     DIALOG_Replace(); break;
     case CMD_GOTO:        DIALOG_GoTo(); break;
+    case CMD_SEARCH_PREV: DIALOG_SearchNext(FALSE); break;
 
     case CMD_WRAP: DIALOG_EditWrap(); break;
     case CMD_FONT: DIALOG_SelectFont(); break;
@@ -107,30 +109,36 @@ static int NOTEPAD_MenuCommand(WPARAM wParam)
  */
 
 static BOOL
-NOTEPAD_FindTextAt(FINDREPLACE *pFindReplace, LPCTSTR pszText, int iTextLength, DWORD dwPosition)
+NOTEPAD_FindTextAt(FINDREPLACE *pFindReplace, LPCTSTR pszText, INT iTextLength, DWORD dwPosition)
 {
     BOOL bMatches;
     size_t iTargetLength;
+    LPCTSTR pchPosition;
 
-    if ((!pFindReplace) || (!pszText))
-    {
+    if (!pFindReplace || !pszText)
         return FALSE;
-    }
 
     iTargetLength = _tcslen(pFindReplace->lpstrFindWhat);
+    pchPosition = &pszText[dwPosition];
 
     /* Make proper comparison */
     if (pFindReplace->Flags & FR_MATCHCASE)
-        bMatches = !_tcsncmp(&pszText[dwPosition], pFindReplace->lpstrFindWhat, iTargetLength);
+        bMatches = !_tcsncmp(pchPosition, pFindReplace->lpstrFindWhat, iTargetLength);
     else
-        bMatches = !_tcsnicmp(&pszText[dwPosition], pFindReplace->lpstrFindWhat, iTargetLength);
+        bMatches = !_tcsnicmp(pchPosition, pFindReplace->lpstrFindWhat, iTargetLength);
 
-    if (bMatches && pFindReplace->Flags & FR_WHOLEWORD)
+    if (bMatches && (pFindReplace->Flags & FR_WHOLEWORD))
     {
-        if ((dwPosition > 0) && !_istspace(pszText[dwPosition-1]))
-            bMatches = FALSE;
-        if ((dwPosition < (DWORD) iTextLength - 1) && !_istspace(pszText[dwPosition+1]))
-            bMatches = FALSE;
+        if (dwPosition > 0)
+        {
+            if (_istalnum(*(pchPosition - 1)) || *(pchPosition - 1) == _T('_'))
+                bMatches = FALSE;
+        }
+        if ((INT)dwPosition + iTargetLength < iTextLength)
+        {
+            if (_istalnum(pchPosition[iTargetLength]) || pchPosition[iTargetLength] == _T('_'))
+                bMatches = FALSE;
+        }
     }
 
     return bMatches;
@@ -285,13 +293,8 @@ static VOID NOTEPAD_InitMenuPopup(HMENU menu, LPARAM index)
 
     UNREFERENCED_PARAMETER(index);
 
-    CheckMenuItem(GetMenu(Globals.hMainWnd), CMD_WRAP,
-        MF_BYCOMMAND | (Globals.bWrapLongLines ? MF_CHECKED : MF_UNCHECKED));
-    if (!Globals.bWrapLongLines)
-    {
-        CheckMenuItem(GetMenu(Globals.hMainWnd), CMD_STATUSBAR,
-            MF_BYCOMMAND | (Globals.bShowStatusBar ? MF_CHECKED : MF_UNCHECKED));
-    }
+    CheckMenuItem(menu, CMD_WRAP, (Globals.bWrapLongLines ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuItem(menu, CMD_STATUSBAR, (Globals.bShowStatusBar ? MF_CHECKED : MF_UNCHECKED));
     EnableMenuItem(menu, CMD_UNDO,
         SendMessage(Globals.hEdit, EM_CANUNDO, 0, 0) ? MF_ENABLED : MF_GRAYED);
     EnableMenuItem(menu, CMD_PASTE,
@@ -304,7 +307,6 @@ static VOID NOTEPAD_InitMenuPopup(HMENU menu, LPARAM index)
 
     EnableMenuItem(menu, CMD_SELECT_ALL,
         GetWindowTextLength(Globals.hEdit) ? MF_ENABLED : MF_GRAYED);
-    DrawMenuBar(Globals.hMainWnd);
 }
 
 LRESULT CALLBACK EDIT_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -394,56 +396,24 @@ NOTEPAD_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     case WM_SIZE:
     {
-        if ((Globals.bShowStatusBar != FALSE) && (Globals.bWrapLongLines == FALSE))
+        RECT rc;
+        GetClientRect(hWnd, &rc);
+
+        if (Globals.bShowStatusBar)
         {
-            RECT rcStatusBar;
-            HDWP hdwp;
+            RECT rcStatus;
+            SendMessageW(Globals.hStatusBar, WM_SIZE, 0, 0);
+            GetWindowRect(Globals.hStatusBar, &rcStatus);
+            rc.bottom -= rcStatus.bottom - rcStatus.top;
+        }
 
-            if (!GetWindowRect(Globals.hStatusBar, &rcStatusBar))
-                break;
+        MoveWindow(Globals.hEdit, 0, 0, rc.right, rc.bottom, TRUE);
 
-            hdwp = BeginDeferWindowPos(2);
-            if (hdwp == NULL)
-                break;
-
-            hdwp = DeferWindowPos(hdwp,
-                                  Globals.hEdit,
-                                  NULL,
-                                  0,
-                                  0,
-                                  LOWORD(lParam),
-                                  HIWORD(lParam) - (rcStatusBar.bottom - rcStatusBar.top),
-                                  SWP_NOZORDER | SWP_NOMOVE);
-
-            if (hdwp == NULL)
-                break;
-
-            hdwp = DeferWindowPos(hdwp,
-                                  Globals.hStatusBar,
-                                  NULL,
-                                  0,
-                                  0,
-                                  LOWORD(lParam),
-                                  LOWORD(wParam),
-                                  SWP_NOZORDER);
-
-            if (hdwp == NULL)
-                break;
-                
-            EndDeferWindowPos(hdwp);
-
+        if (Globals.bShowStatusBar)
+        {
             /* Align status bar parts, only if the status bar resize operation succeeds */
             DIALOG_StatusBarAlignParts();
         }
-        else
-            SetWindowPos(Globals.hEdit,
-                         NULL,
-                         0,
-                         0,
-                         LOWORD(lParam),
-                         HIWORD(lParam),
-                         SWP_NOZORDER | SWP_NOMOVE);
-
         break;
     }
 
@@ -467,10 +437,11 @@ NOTEPAD_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         DoOpenFile(szFileName);
         break;
     }
-    case WM_CHAR:
+
     case WM_INITMENUPOPUP:
         NOTEPAD_InitMenuPopup((HMENU)wParam, lParam);
         break;
+
     default:
         if (msg == aFINDMSGSTRING)
         {
@@ -597,6 +568,7 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE prev, LPTSTR cmdline, int sh
     HMONITOR monitor;
     MONITORINFO info;
     INT x, y;
+    RECT rcIntersect;
 
     static const TCHAR className[] = _T("Notepad");
     static const TCHAR winName[] = _T("Notepad");
@@ -617,6 +589,7 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE prev, LPTSTR cmdline, int sh
 
     ZeroMemory(&Globals, sizeof(Globals));
     Globals.hInstance = hInstance;
+    Globals.encFile = ENCODING_DEFAULT;
     NOTEPAD_LoadSettingsFromRegistry();
 
     ZeroMemory(&wndclass, sizeof(wndclass));
@@ -645,10 +618,7 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE prev, LPTSTR cmdline, int sh
 
     x = Globals.main_rect.left;
     y = Globals.main_rect.top;
-    if (Globals.main_rect.left >= info.rcWork.right ||
-        Globals.main_rect.top >= info.rcWork.bottom ||
-        Globals.main_rect.right < info.rcWork.left ||
-        Globals.main_rect.bottom < info.rcWork.top)
+    if (!IntersectRect(&rcIntersect, &Globals.main_rect, &info.rcWork))
         x = y = CW_USEDEFAULT;
 
     Globals.hMainWnd = CreateWindow(className,
@@ -669,6 +639,7 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE prev, LPTSTR cmdline, int sh
     }
 
     DoCreateEditWindow();
+    DoShowHideStatusBar();
 
     NOTEPAD_InitData();
     DIALOG_FileNew();
@@ -677,8 +648,6 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE prev, LPTSTR cmdline, int sh
     UpdateWindow(Globals.hMainWnd);
     DragAcceptFiles(Globals.hMainWnd, TRUE);
 
-    DIALOG_ViewStatusBar();
-
     if (!HandleCommandLine(cmdline))
     {
         return 0;
@@ -686,14 +655,17 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE prev, LPTSTR cmdline, int sh
 
     hAccel = LoadAccelerators(hInstance, MAKEINTRESOURCE(ID_ACCEL));
 
-    while (GetMessage(&msg, 0, 0, 0))
+    while (GetMessage(&msg, NULL, 0, 0))
     {
-        if (!IsDialogMessage(Globals.hFindReplaceDlg, &msg) &&
-            !TranslateAccelerator(Globals.hMainWnd, hAccel, &msg))
+        if (!TranslateAccelerator(Globals.hMainWnd, hAccel, &msg) &&
+            !IsDialogMessage(Globals.hFindReplaceDlg, &msg))
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
     }
+
+    DestroyAcceleratorTable(hAccel);
+
     return (int) msg.wParam;
 }
