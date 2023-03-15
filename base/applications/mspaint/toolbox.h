@@ -9,7 +9,13 @@
 
 #pragma once
 
-class CToolBox : public CWindowImpl<CMainWindow>
+#define TOOLBAR_ROWS        8
+#define TOOLBAR_COLUMNS     2
+#define CXY_TB_BUTTON       25
+#define CX_TOOLBAR          ((TOOLBAR_COLUMNS * CXY_TB_BUTTON) + 2)
+#define CY_TOOLBAR          ((TOOLBAR_ROWS * CXY_TB_BUTTON) + 2)
+
+class CToolBox : public CWindowImpl<CToolBox>
 {
 public:
     DECLARE_WND_CLASS_EX(_T("ToolBox"), CS_DBLCLKS, COLOR_BTNFACE)

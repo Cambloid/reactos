@@ -1,23 +1,10 @@
 /*
- *  Notepad (settings.c)
- *
- *  Copyright 1998,99 Marcel Baur <mbaur@g26.ethz.ch>
- *  Copyright 2002 Sylvain Petreolle <spetreolle@yahoo.fr>
- *  Copyright 2002 Andriy Palamarchuk
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * PROJECT:    ReactOS Notepad
+ * LICENSE:    LGPL-2.1-or-later (https://spdx.org/licenses/LGPL-2.1-or-later)
+ * PURPOSE:    Providing a Windows-compatible simple text editor for ReactOS
+ * COPYRIGHT:  Copyright 1998,99 Marcel Baur <mbaur@g26.ethz.ch>
+ *             Copyright 2002 Sylvain Petreolle <spetreolle@yahoo.fr>
+ *             Copyright 2002 Andriy Palamarchuk
  */
 
 #include "notepad.h"
@@ -111,7 +98,6 @@ static BOOL QueryString(HKEY hKey, LPCTSTR pszValueName, LPTSTR pszResult, DWORD
 }
 
 /***********************************************************************
- *
  *           NOTEPAD_LoadSettingsFromRegistry
  *
  *  Load settings from registry HKCU\Software\Microsoft\Notepad.
@@ -172,6 +158,9 @@ void NOTEPAD_LoadSettingsFromRegistry(void)
         QueryDword(hKey, _T("iWindowPosY"), (DWORD*)&Globals.main_rect.top);
         QueryDword(hKey, _T("iWindowPosDX"), &cx);
         QueryDword(hKey, _T("iWindowPosDY"), &cy);
+
+        QueryString(hKey, _T("searchString"), Globals.szFindText, ARRAY_SIZE(Globals.szFindText));
+        QueryString(hKey, _T("replaceString"), Globals.szReplaceText, ARRAY_SIZE(Globals.szReplaceText));
     }
 
     Globals.lfFont.lfHeight = HeightFromPointSize(dwPointSize);
@@ -211,7 +200,7 @@ void NOTEPAD_LoadSettingsFromRegistry(void)
     }
 
     hFont = CreateFontIndirect(&Globals.lfFont);
-    SendMessage(Globals.hEdit, WM_SETFONT, (WPARAM)hFont, (LPARAM)TRUE);
+    SendMessage(Globals.hEdit, WM_SETFONT, (WPARAM)hFont, TRUE);
     if (hFont)
     {
         if (Globals.hFont)
@@ -231,7 +220,6 @@ static BOOL SaveString(HKEY hKey, LPCTSTR pszValueNameT, LPCTSTR pszValue)
 }
 
 /***********************************************************************
- *
  *           NOTEPAD_SaveSettingsToRegistry
  *
  *  Save settings to registry HKCU\Software\Microsoft\Notepad.
@@ -272,6 +260,8 @@ void NOTEPAD_SaveSettingsToRegistry(void)
         SaveDword(hKey, _T("iWindowPosY"), Globals.main_rect.top);
         SaveDword(hKey, _T("iWindowPosDX"), Globals.main_rect.right - Globals.main_rect.left);
         SaveDword(hKey, _T("iWindowPosDY"), Globals.main_rect.bottom - Globals.main_rect.top);
+        SaveString(hKey, _T("searchString"), Globals.szFindText);
+        SaveString(hKey, _T("replaceString"), Globals.szReplaceText);
 
         RegCloseKey(hKey);
     }

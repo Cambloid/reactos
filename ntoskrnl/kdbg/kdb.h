@@ -82,13 +82,19 @@ KdbpStackSwitchAndCall(
 
 extern PCHAR KdbInitFileBuffer;
 
+NTSTATUS
+NTAPI
+KdbInitialize(
+    _In_ PKD_DISPATCH_TABLE DispatchTable,
+    _In_ ULONG BootPhase);
+
 BOOLEAN
 NTAPI
 KdbRegisterCliCallback(
     PVOID Callback,
     BOOLEAN Deregister);
 
-VOID
+NTSTATUS
 KdbpCliInit(VOID);
 
 VOID
@@ -158,13 +164,16 @@ KdbpSymFindModule(
 BOOLEAN
 KdbSymPrintAddress(
     IN PVOID Address,
-    IN PCONTEXT Context
-);
+    IN PCONTEXT Context);
 
 VOID
 KdbSymProcessSymbols(
     _Inout_ PLDR_DATA_TABLE_ENTRY LdrEntry,
     _In_ BOOLEAN Load);
+
+VOID
+KdbSymInit(
+    _In_ ULONG BootPhase);
 
 /* from kdb.c */
 
@@ -247,10 +256,6 @@ KdbEnterDebuggerException(IN PEXCEPTION_RECORD64 ExceptionRecord,
                           IN KPROCESSOR_MODE PreviousMode,
                           IN OUT PCONTEXT Context,
                           IN BOOLEAN FirstChance);
-
-KD_CONTINUE_TYPE
-KdbEnterDebuggerFirstChanceException(
-    IN OUT PKTRAP_FRAME TrapFrame);
 
 /* other functions */
 

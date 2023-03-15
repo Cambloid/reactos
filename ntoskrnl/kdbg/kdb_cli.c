@@ -155,14 +155,14 @@ static LONG KdbNumberOfColsTerminal = -1;
 PCHAR KdbInitFileBuffer = NULL; /* Buffer where KDBinit file is loaded into during initialization */
 BOOLEAN KdbpBugCheckRequested = FALSE;
 
-/* Vars for dmesg */
-/* defined in ../kd/kdio.c, declare here: */
-extern volatile BOOLEAN KdbpIsInDmesgMode;
-extern const ULONG KdpDmesgBufferSize;
-extern PCHAR KdpDmesgBuffer;
-extern volatile ULONG KdpDmesgCurrentPosition;
-extern volatile ULONG KdpDmesgFreeBytes;
-extern volatile ULONG KdbDmesgTotalWritten;
+/* Variables for Dmesg */
+static const ULONG KdpDmesgBufferSize = 128 * 1024; // 512*1024;
+static PCHAR KdpDmesgBuffer = NULL;
+static volatile ULONG KdpDmesgCurrentPosition = 0;
+static volatile ULONG KdpDmesgFreeBytes = 0;
+static volatile ULONG KdbDmesgTotalWritten = 0;
+static volatile BOOLEAN KdbpIsInDmesgMode = FALSE;
+static KSPIN_LOCK KdpDmesgLogSpinLock;
 
 STRING KdbPromptString = RTL_CONSTANT_STRING("kdb:> ");
 
@@ -3795,11 +3795,13 @@ KdbpCliInterpretInitFile(VOID)
     DPRINT("KDB: KDBinit executed\n");
 }
 
-/*!\brief Called when KDB is initialized
+/**
+ * @brief   Called when KDB is initialized.
  *
- * Reads the KDBinit file from the SystemRoot\System32\drivers\etc directory and executes it.
- */
-VOID
+ * Reads the KDBinit file from the SystemRoot\System32\drivers\etc directory
+ * and executes it.
+ **/
+NTSTATUS
 KdbpCliInit(VOID)
 {
     NTSTATUS Status;
@@ -3811,6 +3813,10 @@ KdbpCliInit(VOID)
     INT FileSize;
     PCHAR FileBuffer;
     ULONG OldEflags;
+
+    /* Don't load the KDBinit file if its buffer is already lying around */
+    if (KdbInitFileBuffer)
+        return STATUS_SUCCESS;
 
     /* Initialize the object attributes */
     RtlInitUnicodeString(&FileName, L"\\SystemRoot\\System32\\drivers\\etc\\KDBinit");
@@ -3828,17 +3834,18 @@ KdbpCliInit(VOID)
     if (!NT_SUCCESS(Status))
     {
         DPRINT("Could not open \\SystemRoot\\System32\\drivers\\etc\\KDBinit (Status 0x%x)", Status);
-        return;
+        return Status;
     }
 
     /* Get the size of the file */
-    Status = ZwQueryInformationFile(hFile, &Iosb, &FileStdInfo, sizeof(FileStdInfo),
+    Status = ZwQueryInformationFile(hFile, &Iosb,
+                                    &FileStdInfo, sizeof(FileStdInfo),
                                     FileStandardInformation);
     if (!NT_SUCCESS(Status))
     {
         ZwClose(hFile);
         DPRINT("Could not query size of \\SystemRoot\\System32\\drivers\\etc\\KDBinit (Status 0x%x)", Status);
-        return;
+        return Status;
     }
     FileSize = FileStdInfo.EndOfFile.u.LowPart;
 
@@ -3848,18 +3855,18 @@ KdbpCliInit(VOID)
     {
         ZwClose(hFile);
         DPRINT("Could not allocate %d bytes for KDBinit file\n", FileSize);
-        return;
+        return Status;
     }
 
     /* Load file into memory */
     Status = ZwReadFile(hFile, NULL, NULL, NULL, &Iosb, FileBuffer, FileSize, NULL, NULL);
     ZwClose(hFile);
 
-    if (!NT_SUCCESS(Status) && Status != STATUS_END_OF_FILE)
+    if (!NT_SUCCESS(Status) && (Status != STATUS_END_OF_FILE))
     {
         ExFreePool(FileBuffer);
         DPRINT("Could not read KDBinit file into memory (Status 0x%lx)\n", Status);
-        return;
+        return Status;
     }
 
     FileSize = min(FileSize, (INT)Iosb.Information);
@@ -3871,11 +3878,140 @@ KdbpCliInit(VOID)
 
     /* Interpret the init file... */
     KdbInitFileBuffer = FileBuffer;
-    //KdbEnter(); // FIXME
+    //KdbEnter(); // FIXME, see commit baa47fa5e
     KdbInitFileBuffer = NULL;
 
     /* Leave critical section */
     __writeeflags(OldEflags);
 
     ExFreePool(FileBuffer);
+
+    return STATUS_SUCCESS;
 }
+
+
+/**
+ * @brief   Debug logger function.
+ *
+ * This function writes text strings into KdpDmesgBuffer, using it as
+ * a circular buffer. KdpDmesgBuffer contents can be later (re)viewed
+ * using the dmesg command. KdbDebugPrint() protects KdpDmesgBuffer
+ * from simultaneous writes by use of KdpDmesgLogSpinLock.
+ **/
+static VOID
+NTAPI
+KdbDebugPrint(
+    _In_ PCHAR String,
+    _In_ ULONG Length)
+{
+    KIRQL OldIrql;
+    ULONG beg, end, num;
+
+    /* Avoid recursive calling if we already are in Dmesg mode */
+    if (KdbpIsInDmesgMode)
+       return;
+
+    if (KdpDmesgBuffer == NULL)
+        return;
+
+    /* Acquire the printing spinlock without waiting at raised IRQL */
+    OldIrql = KdbpAcquireLock(&KdpDmesgLogSpinLock);
+
+    beg = KdpDmesgCurrentPosition;
+    /* Invariant: always_true(KdpDmesgFreeBytes == KdpDmesgBufferSize); */
+    num = min(Length, KdpDmesgFreeBytes);
+    if (num != 0)
+    {
+        end = (beg + num) % KdpDmesgBufferSize;
+        if (end > beg)
+        {
+            RtlCopyMemory(KdpDmesgBuffer + beg, String, Length);
+        }
+        else
+        {
+            RtlCopyMemory(KdpDmesgBuffer + beg, String, KdpDmesgBufferSize - beg);
+            RtlCopyMemory(KdpDmesgBuffer, String + (KdpDmesgBufferSize - beg), end);
+        }
+        KdpDmesgCurrentPosition = end;
+
+        /* Counting the total bytes written */
+        KdbDmesgTotalWritten += num;
+    }
+
+    /* Release the spinlock */
+    KdbpReleaseLock(&KdpDmesgLogSpinLock, OldIrql);
+
+    /* Optional step(?): find out a way to notify about buffer exhaustion,
+     * and possibly fall into kbd to use dmesg command: user will read
+     * debug strings before they will be wiped over by next writes. */
+}
+
+/**
+ * @brief   Initializes the KDBG debugger.
+ *
+ * @param[in]   DispatchTable
+ * Pointer to the KD dispatch table.
+ *
+ * @param[in]   BootPhase
+ * Phase of initialization.
+ *
+ * @return  A status value.
+ * @note    Also known as "KdpKdbgInit".
+ **/
+NTSTATUS
+NTAPI
+KdbInitialize(
+    _In_ PKD_DISPATCH_TABLE DispatchTable,
+    _In_ ULONG BootPhase)
+{
+    if (BootPhase == 0)
+    {
+        /* Write out the functions that we support for now */
+        DispatchTable->KdpPrintRoutine = KdbDebugPrint;
+
+        /* Register for BootPhase 1 initialization and as a Provider */
+        DispatchTable->KdpInitRoutine = KdbInitialize;
+        InsertTailList(&KdProviders, &DispatchTable->KdProvidersList);
+    }
+    else if (BootPhase == 1)
+    {
+        /* Register for later BootPhase 2 reinitialization */
+        DispatchTable->KdpInitRoutine = KdbInitialize;
+
+        /* Initialize Dmesg support */
+
+        /* Allocate a buffer for Dmesg log buffer. +1 for terminating null,
+         * see kdbp_cli.c:KdbpCmdDmesg()/2 */
+        KdpDmesgBuffer = ExAllocatePoolZero(NonPagedPool,
+                                            KdpDmesgBufferSize + 1,
+                                            TAG_KDBG);
+        /* Ignore failure if KdpDmesgBuffer is NULL */
+        KdpDmesgFreeBytes = KdpDmesgBufferSize;
+        KdbDmesgTotalWritten = 0;
+
+        /* Initialize spinlock */
+        KeInitializeSpinLock(&KdpDmesgLogSpinLock);
+    }
+
+    if (BootPhase <= 1)
+    {
+        /* Initialize symbols support */
+        KdbSymInit(BootPhase);
+    }
+    else if (BootPhase >= 2)
+    {
+        /* I/O is now set up for disk access: Read KDB Data */
+        NTSTATUS Status = KdbpCliInit();
+
+        /* Schedule an I/O reinitialization if needed */
+        if (Status == STATUS_OBJECT_NAME_NOT_FOUND ||
+            Status == STATUS_OBJECT_PATH_NOT_FOUND)
+        {
+            DispatchTable->KdpInitRoutine = KdbInitialize;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/* EOF */

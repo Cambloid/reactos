@@ -39,11 +39,10 @@ typedef enum _KD_CONTINUE_TYPE
 } KD_CONTINUE_TYPE;
 
 typedef
-VOID
-(NTAPI*PKDP_INIT_ROUTINE)(
-    struct _KD_DISPATCH_TABLE *DispatchTable,
-    ULONG BootPhase
-);
+NTSTATUS
+(NTAPI *PKDP_INIT_ROUTINE)(
+    _In_ struct _KD_DISPATCH_TABLE *DispatchTable,
+    _In_ ULONG BootPhase);
 
 typedef
 VOID
@@ -54,39 +53,43 @@ VOID
 
 /* INIT ROUTINES *************************************************************/
 
+KIRQL
+NTAPI
+KdbpAcquireLock(
+    _In_ PKSPIN_LOCK SpinLock);
+
+VOID
+NTAPI
+KdbpReleaseLock(
+    _In_ PKSPIN_LOCK SpinLock,
+    _In_ KIRQL OldIrql);
+
 VOID
 KdpScreenAcquire(VOID);
 
 VOID
 KdpScreenRelease(VOID);
 
-VOID
+NTSTATUS
 NTAPI
 KdpScreenInit(
-    struct _KD_DISPATCH_TABLE *DispatchTable,
-    ULONG BootPhase
-);
+    _In_ struct _KD_DISPATCH_TABLE *DispatchTable,
+    _In_ ULONG BootPhase);
 
-VOID
+NTSTATUS
 NTAPI
 KdpSerialInit(
-    struct _KD_DISPATCH_TABLE *DispatchTable,
-    ULONG BootPhase
-);
+    _In_ struct _KD_DISPATCH_TABLE *DispatchTable,
+    _In_ ULONG BootPhase);
 
-VOID
+NTSTATUS
 NTAPI
 KdpDebugLogInit(
-    struct _KD_DISPATCH_TABLE *DispatchTable,
-    ULONG BootPhase
-);
+    _In_ struct _KD_DISPATCH_TABLE *DispatchTable,
+    _In_ ULONG BootPhase);
 
 #ifdef KDBG
-VOID
-NTAPI
-KdpKdbgInit(
-    struct _KD_DISPATCH_TABLE *DispatchTable,
-    ULONG BootPhase);
+#define KdpKdbgInit KdbInitialize
 #endif
 
 
@@ -165,6 +168,7 @@ typedef struct _KD_DISPATCH_TABLE
     LIST_ENTRY KdProvidersList;
     PKDP_INIT_ROUTINE KdpInitRoutine;
     PKDP_PRINT_ROUTINE KdpPrintRoutine;
+    NTSTATUS InitStatus;
 } KD_DISPATCH_TABLE, *PKD_DISPATCH_TABLE;
 
 /* The current Debugging Mode */
