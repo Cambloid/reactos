@@ -26,11 +26,6 @@ extern ToolsModel toolsModel;
 class SelectionModel;
 extern SelectionModel selectionModel;
 
-extern LOGFONT lfTextFont;
-extern HFONT hfontTextFont;
-extern LPTSTR textToolText;
-extern int textToolTextMaxLen;
-
 class PaletteModel;
 extern PaletteModel paletteModel;
 
@@ -66,7 +61,7 @@ class CMiniatureWindow;
 class CToolBox;
 class CToolSettingsWindow;
 class CPaletteWindow;
-class CScrollboxWindow;
+class CCanvasWindow;
 class CSelectionWindow;
 class CImgAreaWindow;
 class CSizeboxWindow;
@@ -78,8 +73,7 @@ extern CMiniatureWindow miniature;
 extern CToolBox toolBoxContainer;
 extern CToolSettingsWindow toolSettingsWindow;
 extern CPaletteWindow paletteWindow;
-extern CScrollboxWindow scrollboxWindow;
-extern CScrollboxWindow scrlClientWindow;
+extern CCanvasWindow canvasWindow;
 extern CSelectionWindow selectionWindow;
 extern CImgAreaWindow imageArea;
 extern CSizeboxWindow sizeboxLeftTop;

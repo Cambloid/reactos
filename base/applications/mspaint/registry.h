@@ -8,10 +8,12 @@
 
 #pragma once
 
+#define MAX_RECENT_FILES 4
+
 class RegistrySettings
 {
 private:
-    void LoadPresets();
+    void LoadPresets(INT nCmdShow);
 
 public:
     DWORD BMPHeight;
@@ -27,10 +29,7 @@ public:
     DWORD UnitSetting;
     WINDOWPLACEMENT WindowPlacement;
 
-    CString strFile1;
-    CString strFile2;
-    CString strFile3;
-    CString strFile4;
+    CString strFiles[MAX_RECENT_FILES];
 
     CString strFontName;
     DWORD PointSize;
@@ -51,7 +50,7 @@ public:
 
     static void SetWallpaper(LPCTSTR szFileName, WallpaperStyle style);
 
-    void Load();
+    void Load(INT nCmdShow);
     void Store();
     void SetMostRecentFile(LPCTSTR szPathName);
 };

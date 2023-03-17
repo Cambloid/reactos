@@ -9,11 +9,36 @@
  *              Stanislav Motylkov
  */
 
-/* INCLUDES *********************************************************/
-
 #include "precomp.h"
+#include <assert.h>
+
+typedef HWND (WINAPI *FN_HtmlHelpW)(HWND, LPCWSTR, UINT, DWORD_PTR);
+
+static HINSTANCE s_hHHCTRL_OCX = NULL; // HtmlHelpW needs "hhctrl.ocx"
+static FN_HtmlHelpW s_pHtmlHelpW = NULL;
 
 /* FUNCTIONS ********************************************************/
+
+// A wrapper function for HtmlHelpW
+static HWND DoHtmlHelpW(HWND hwndCaller, LPCWSTR pszFile, UINT uCommand, DWORD_PTR dwData)
+{
+    WCHAR szPath[MAX_PATH];
+
+    if (!s_hHHCTRL_OCX && (uCommand != HH_CLOSE_ALL))
+    {
+        // The function loads the system library, not local
+        GetSystemDirectoryW(szPath, _countof(szPath));
+        wcscat(szPath, L"\\hhctrl.ocx");
+        s_hHHCTRL_OCX = LoadLibraryW(szPath);
+        if (s_hHHCTRL_OCX)
+            s_pHtmlHelpW = (FN_HtmlHelpW)GetProcAddress(s_hHHCTRL_OCX, "HtmlHelpW");
+    }
+
+    if (!s_pHtmlHelpW)
+        return NULL;
+
+    return s_pHtmlHelpW(hwndCaller, pszFile, uCommand, dwData);
+}
 
 BOOL
 zoomTo(int newZoom, int mouseX, int mouseY)
@@ -21,7 +46,7 @@ zoomTo(int newZoom, int mouseX, int mouseY)
     RECT clientRectScrollbox;
     RECT clientRectImageArea;
     int x, y, w, h;
-    scrollboxWindow.GetClientRect(&clientRectScrollbox);
+    canvasWindow.GetClientRect(&clientRectScrollbox);
     imageArea.GetClientRect(&clientRectImageArea);
     w = clientRectImageArea.right * newZoom / toolsModel.GetZoom();
     h = clientRectImageArea.bottom * newZoom / toolsModel.GetZoom();
@@ -37,11 +62,11 @@ zoomTo(int newZoom, int mouseX, int mouseY)
     toolsModel.SetZoom(newZoom);
 
     imageArea.MoveWindow(GRIP_SIZE, GRIP_SIZE, Zoomed(imageModel.GetWidth()), Zoomed(imageModel.GetHeight()), FALSE);
-    scrollboxWindow.Invalidate(TRUE);
+    canvasWindow.Invalidate(TRUE);
     imageArea.Invalidate(FALSE);
 
-    scrollboxWindow.SendMessage(WM_HSCROLL, MAKEWPARAM(SB_THUMBPOSITION, x), 0);
-    scrollboxWindow.SendMessage(WM_VSCROLL, MAKEWPARAM(SB_THUMBPOSITION, y), 0);
+    canvasWindow.SendMessage(WM_HSCROLL, MAKEWPARAM(SB_THUMBPOSITION, x), 0);
+    canvasWindow.SendMessage(WM_VSCROLL, MAKEWPARAM(SB_THUMBPOSITION, y), 0);
     return TRUE;
 }
 
@@ -77,9 +102,9 @@ void CMainWindow::alignChildrenToMainWindow()
         rcSpace.top += CY_PALETTE;
     }
 
-    if (scrollboxWindow.IsWindow())
+    if (canvasWindow.IsWindow())
     {
-        hDWP = ::DeferWindowPos(hDWP, scrollboxWindow, NULL,
+        hDWP = ::DeferWindowPos(hDWP, canvasWindow, NULL,
                                 rcSpace.left, rcSpace.top,
                                 rcSpace.right - rcSpace.left, rcSpace.bottom - rcSpace.top,
                                 SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREPOSITION);
@@ -191,9 +216,9 @@ LRESULT CMainWindow::OnMouseWheel(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL&
             for (UINT i = 0; i < nCount; ++i)
             {
                 if (zDelta < 0)
-                    ::PostMessageW(scrollboxWindow, WM_HSCROLL, MAKEWPARAM(SB_LINEDOWN, 0), 0);
+                    ::PostMessageW(canvasWindow, WM_HSCROLL, MAKEWPARAM(SB_LINEDOWN, 0), 0);
                 else if (zDelta > 0)
-                    ::PostMessageW(scrollboxWindow, WM_HSCROLL, MAKEWPARAM(SB_LINEUP, 0), 0);
+                    ::PostMessageW(canvasWindow, WM_HSCROLL, MAKEWPARAM(SB_LINEUP, 0), 0);
             }
         }
         else
@@ -202,9 +227,9 @@ LRESULT CMainWindow::OnMouseWheel(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL&
             for (UINT i = 0; i < nCount; ++i)
             {
                 if (zDelta < 0)
-                    ::PostMessageW(scrollboxWindow, WM_VSCROLL, MAKEWPARAM(SB_LINEDOWN, 0), 0);
+                    ::PostMessageW(canvasWindow, WM_VSCROLL, MAKEWPARAM(SB_LINEDOWN, 0), 0);
                 else if (zDelta > 0)
-                    ::PostMessageW(scrollboxWindow, WM_VSCROLL, MAKEWPARAM(SB_LINEUP, 0), 0);
+                    ::PostMessageW(canvasWindow, WM_VSCROLL, MAKEWPARAM(SB_LINEUP, 0), 0);
             }
         }
     }
@@ -234,7 +259,18 @@ LRESULT CMainWindow::OnCreate(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 
 LRESULT CMainWindow::OnDestroy(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
+    registrySettings.WindowPlacement.length = sizeof(WINDOWPLACEMENT);
     GetWindowPlacement(&(registrySettings.WindowPlacement));
+
+    DoHtmlHelpW(NULL, NULL, HH_CLOSE_ALL, 0);
+
+    if (s_hHHCTRL_OCX)
+    {
+        FreeLibrary(s_hHHCTRL_OCX);
+        s_hHHCTRL_OCX = NULL;
+        s_pHtmlHelpW = NULL;
+    }
+
     PostQuitMessage(0); /* send a WM_QUIT to the message queue */
     return 0;
 }
@@ -275,53 +311,63 @@ LRESULT CMainWindow::OnClose(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHan
     return 0;
 }
 
+void CMainWindow::ProcessFileMenu(HMENU hPopupMenu)
+{
+    LPCTSTR dotext = PathFindExtensionW(filepathname);
+    BOOL isBMP = FALSE;
+    if (_tcsicmp(dotext, _T(".bmp")) == 0 ||
+        _tcsicmp(dotext, _T(".dib")) == 0 ||
+        _tcsicmp(dotext, _T(".rle")) == 0)
+    {
+        isBMP = TRUE;
+    }
+
+    EnableMenuItem(hPopupMenu, IDM_FILEASWALLPAPERPLANE,     ENABLED_IF(isAFile && isBMP));
+    EnableMenuItem(hPopupMenu, IDM_FILEASWALLPAPERCENTERED,  ENABLED_IF(isAFile && isBMP));
+    EnableMenuItem(hPopupMenu, IDM_FILEASWALLPAPERSTRETCHED, ENABLED_IF(isAFile && isBMP));
+
+    for (INT iItem = 0; iItem < MAX_RECENT_FILES; ++iItem)
+        RemoveMenu(hPopupMenu, IDM_FILE1 + iItem, MF_BYCOMMAND);
+
+    if (registrySettings.strFiles[0].IsEmpty())
+        return;
+
+    RemoveMenu(hPopupMenu, IDM_FILEMOSTRECENTLYUSEDFILE, MF_BYCOMMAND);
+
+    INT cMenuItems = GetMenuItemCount(hPopupMenu);
+
+    for (INT iItem = 0; iItem < MAX_RECENT_FILES; ++iItem)
+    {
+        CString& strFile = registrySettings.strFiles[iItem];
+        if (strFile.IsEmpty())
+            break;
+
+        // Condense the lengthy pathname by using '...'
+#define MAX_RECENT_PATHNAME_DISPLAY 30
+        CPath pathFile(strFile);
+        pathFile.CompactPathEx(MAX_RECENT_PATHNAME_DISPLAY);
+        assert(_tcslen((LPCTSTR)pathFile) <= MAX_RECENT_PATHNAME_DISPLAY);
+
+        // Add an accelerator (by '&') to the item number for quick access
+        TCHAR szText[4 + MAX_RECENT_PATHNAME_DISPLAY + 1];
+        wsprintf(szText, _T("&%u %s"), iItem + 1, (LPCTSTR)pathFile);
+
+        INT iMenuItem = (cMenuItems - 2) + iItem;
+        InsertMenu(hPopupMenu, iMenuItem, MF_BYPOSITION | MF_STRING, IDM_FILE1 + iItem, szText);
+    }
+}
+
 LRESULT CMainWindow::OnInitMenuPopup(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
     HMENU menu = GetMenu();
     BOOL trueSelection =
         (::IsWindowVisible(selectionWindow) &&
          ((toolsModel.GetActiveTool() == TOOL_FREESEL) || (toolsModel.GetActiveTool() == TOOL_RECTSEL)));
-    BOOL isBMP;
+
     switch (lParam)
     {
         case 0: /* File menu */
-            if ((HMENU)wParam != GetSubMenu(menu, 0))
-                break;
-
-            isBMP = _wcsicmp(PathFindExtensionW(filepathname), L".bmp") == 0;
-            EnableMenuItem(menu, IDM_FILEASWALLPAPERPLANE,     ENABLED_IF(isAFile && isBMP));
-            EnableMenuItem(menu, IDM_FILEASWALLPAPERCENTERED,  ENABLED_IF(isAFile && isBMP));
-            EnableMenuItem(menu, IDM_FILEASWALLPAPERSTRETCHED, ENABLED_IF(isAFile && isBMP));
-
-            RemoveMenu(menu, IDM_FILE1, MF_BYCOMMAND);
-            RemoveMenu(menu, IDM_FILE2, MF_BYCOMMAND);
-            RemoveMenu(menu, IDM_FILE3, MF_BYCOMMAND);
-            RemoveMenu(menu, IDM_FILE4, MF_BYCOMMAND);
-            if (!registrySettings.strFile1.IsEmpty())
-            {
-                RemoveMenu(menu, IDM_FILEMOSTRECENTLYUSEDFILE, MF_BYCOMMAND);
-                CPath pathFile1(registrySettings.strFile1);
-                pathFile1.CompactPathEx(30);
-                if (!registrySettings.strFile2.IsEmpty())
-                {
-                    CPath pathFile2(registrySettings.strFile2);
-                    pathFile2.CompactPathEx(30);
-                    if (!registrySettings.strFile3.IsEmpty())
-                    {
-                        CPath pathFile3(registrySettings.strFile3);
-                        pathFile3.CompactPathEx(30);
-                        if (!registrySettings.strFile4.IsEmpty())
-                        {
-                            CPath pathFile4(registrySettings.strFile4);
-                            pathFile4.CompactPathEx(30);
-                            InsertMenu((HMENU)wParam, 17, MF_BYPOSITION | MF_STRING, IDM_FILE4, _T("4 ") + pathFile4);
-                        }
-                        InsertMenu((HMENU)wParam, 17, MF_BYPOSITION | MF_STRING, IDM_FILE3, _T("3 ") + pathFile3);
-                    }
-                    InsertMenu((HMENU)wParam, 17, MF_BYPOSITION | MF_STRING, IDM_FILE2, _T("2 ") + pathFile2);
-                }
-                InsertMenu((HMENU)wParam, 17, MF_BYPOSITION | MF_STRING, IDM_FILE1, _T("1 ") + pathFile1);
-            }
+            ProcessFileMenu((HMENU)wParam);
             break;
         case 1: /* Edit menu */
             EnableMenuItem(menu, IDM_EDITUNDO, ENABLED_IF(imageModel.HasUndoSteps()));
@@ -381,13 +427,6 @@ LRESULT CMainWindow::OnGetMinMaxInfo(UINT nMsg, WPARAM wParam, LPARAM lParam, BO
     MINMAXINFO *mm = (LPMINMAXINFO) lParam;
     mm->ptMinTrackSize.x = 330;
     mm->ptMinTrackSize.y = 430;
-    return 0;
-}
-
-LRESULT CMainWindow::OnSetCursor(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
-{
-    SetCursor(LoadCursor(NULL, IDC_ARROW));
-    bHandled = FALSE;
     return 0;
 }
 
@@ -452,7 +491,7 @@ LRESULT CMainWindow::OnCommand(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bH
             break;
         }
         case IDM_HELPHELPTOPICS:
-            HtmlHelp(m_hWnd, _T("help\\Paint.chm"), 0, 0);
+            DoHtmlHelpW(m_hWnd, L"%SystemRoot%\\Help\\mspaint.chm", HH_DISPLAY_TOPIC, 0);
             break;
         case IDM_FILEEXIT:
             SendMessage(WM_CLOSE, wParam, lParam);
@@ -517,23 +556,13 @@ LRESULT CMainWindow::OnCommand(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bH
             RegistrySettings::SetWallpaper(filepathname, RegistrySettings::STRETCHED);
             break;
         case IDM_FILE1:
-        {
-            ConfirmSave() && DoLoadImageFile(m_hWnd, registrySettings.strFile1, TRUE);
-            break;
-        }
         case IDM_FILE2:
-        {
-            ConfirmSave() && DoLoadImageFile(m_hWnd, registrySettings.strFile2, TRUE);
-            break;
-        }
         case IDM_FILE3:
-        {
-            ConfirmSave() && DoLoadImageFile(m_hWnd, registrySettings.strFile3, TRUE);
-            break;
-        }
         case IDM_FILE4:
         {
-            ConfirmSave() && DoLoadImageFile(m_hWnd, registrySettings.strFile4, TRUE);
+            INT iFile = LOWORD(wParam) - IDM_FILE1;
+            if (ConfirmSave())
+                DoLoadImageFile(m_hWnd, registrySettings.strFiles[iFile], TRUE);
             break;
         }
         case IDM_EDITUNDO:

@@ -21,12 +21,6 @@ ToolsModel toolsModel;
 
 SelectionModel selectionModel;
 
-LOGFONT lfTextFont;
-HFONT hfontTextFont;
-HWND hwndEditCtl;
-LPTSTR textToolText = NULL;
-int textToolTextMaxLen = 0;
-
 PaletteModel paletteModel;
 
 RegistrySettings registrySettings;
@@ -66,8 +60,7 @@ CMiniatureWindow miniature;
 CToolBox toolBoxContainer;
 CToolSettingsWindow toolSettingsWindow;
 CPaletteWindow paletteWindow;
-CScrollboxWindow scrollboxWindow;
-CScrollboxWindow scrlClientWindow;
+CCanvasWindow canvasWindow;
 CSelectionWindow selectionWindow;
 CImgAreaWindow imageArea;
 CSizeboxWindow sizeboxLeftTop;
@@ -143,7 +136,7 @@ OFNHookProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 /* entry point */
 
 int WINAPI
-_tWinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPTSTR lpszArgument, int nFunsterStil)
+_tWinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPTSTR lpszArgument, INT nCmdShow)
 {
     HWND hwnd;               /* This is the handle for our window */
     MSG messages;            /* Here messages to the application are saved */
@@ -166,13 +159,6 @@ _tWinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPTSTR lpszArgument
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-    /* init font for text tool */
-    ZeroMemory(&lfTextFont, sizeof(lfTextFont));
-    lfTextFont.lfHeight = 0;
-    lfTextFont.lfWeight = FW_NORMAL;
-    lfTextFont.lfCharSet = DEFAULT_CHARSET;
-    hfontTextFont = CreateFontIndirect(&lfTextFont);
-
     hProgInstance = hThisInstance;
 
     /* initialize common controls library */
@@ -189,12 +175,12 @@ _tWinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPTSTR lpszArgument
     LoadString(hThisInstance, IDS_MINIATURETITLE, miniaturetitle, _countof(miniaturetitle));
 
     /* load settings from registry */
-    registrySettings.Load();
+    registrySettings.Load(nCmdShow);
     showMiniature = registrySettings.ShowThumbnail;
     imageModel.Crop(registrySettings.BMPWidth, registrySettings.BMPHeight);
 
     /* create main window */
-    RECT mainWindowPos = {0, 0, 544, 375};	// FIXME: use equivalent of CW_USEDEFAULT for position
+    RECT mainWindowPos = registrySettings.WindowPlacement.rcNormalPosition;
     hwnd = mainWindow.Create(HWND_DESKTOP, mainWindowPos, strTitle, WS_OVERLAPPEDWINDOW);
 
     RECT fullscreenWindowPos = {0, 0, 100, 100};
@@ -237,9 +223,9 @@ _tWinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPTSTR lpszArgument
     RECT paletteWindowPos = {56, 9, 56 + 255, 9 + 32};
     paletteWindow.Create(hwnd, paletteWindowPos, NULL, WS_CHILD | WS_VISIBLE);
 
-    /* creating the scroll box */
-    RECT scrollboxWindowPos = {56, 49, 56 + 472, 49 + 248};
-    scrollboxWindow.Create(hwnd, scrollboxWindowPos, NULL,
+    // creating the canvas
+    RECT canvasWindowPos = {0, 0, 0 + 500, 0 + 500};
+    canvasWindow.Create(hwnd, canvasWindowPos, NULL,
                            WS_CHILD | WS_GROUP | WS_HSCROLL | WS_VSCROLL | WS_VISIBLE, WS_EX_CLIENTEDGE);
 
     /* creating the status bar */
@@ -250,16 +236,13 @@ _tWinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPTSTR lpszArgument
     if (registrySettings.ShowStatusBar)
         ShowWindow(hStatusBar, SW_SHOWNOACTIVATE);
 
-    RECT scrlClientWindowPos = {0, 0, 0 + 500, 0 + 500};
-    scrlClientWindow.Create(scrollboxWindow.m_hWnd, scrlClientWindowPos, NULL, WS_CHILD | WS_VISIBLE);
+    // Creating the window inside the canvas
+    RECT imageAreaPos = {GRIP_SIZE, GRIP_SIZE, GRIP_SIZE + imageModel.GetWidth(), GRIP_SIZE + imageModel.GetHeight()};
+    imageArea.Create(canvasWindow.m_hWnd, imageAreaPos, NULL, WS_CHILD | WS_VISIBLE);
 
     /* create selection window (initially hidden) */
     RECT selectionWindowPos = {350, 0, 350 + 100, 0 + 100};
-    selectionWindow.Create(scrlClientWindow.m_hWnd, selectionWindowPos, NULL, WS_CHILD | BS_OWNERDRAW);
-
-    /* creating the window inside the scroll box, on which the image in hDrawingDC's bitmap is drawn */
-    RECT imageAreaPos = {GRIP_SIZE, GRIP_SIZE, GRIP_SIZE + imageModel.GetWidth(), GRIP_SIZE + imageModel.GetHeight()};
-    imageArea.Create(scrlClientWindow.m_hWnd, imageAreaPos, NULL, WS_CHILD | WS_VISIBLE);
+    selectionWindow.Create(imageArea.m_hWnd, selectionWindowPos, NULL, WS_CHILD | BS_OWNERDRAW);
 
     if (__argc >= 2)
     {
@@ -325,22 +308,19 @@ _tWinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPTSTR lpszArgument
 
     /* creating the size boxes */
     RECT sizeboxPos = {0, 0, GRIP_SIZE, GRIP_SIZE};
-    sizeboxLeftTop.Create(scrlClientWindow.m_hWnd, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxCenterTop.Create(scrlClientWindow.m_hWnd, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxRightTop.Create(scrlClientWindow.m_hWnd, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxLeftCenter.Create(scrlClientWindow.m_hWnd, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxRightCenter.Create(scrlClientWindow.m_hWnd, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxLeftBottom.Create(scrlClientWindow.m_hWnd, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxCenterBottom.Create(scrlClientWindow.m_hWnd, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxRightBottom.Create(scrlClientWindow.m_hWnd, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
+    sizeboxLeftTop.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
+    sizeboxCenterTop.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
+    sizeboxRightTop.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
+    sizeboxLeftCenter.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
+    sizeboxRightCenter.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
+    sizeboxLeftBottom.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
+    sizeboxCenterBottom.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
+    sizeboxRightBottom.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
     /* placing the size boxes around the image */
     imageArea.SendMessage(WM_SIZE, 0, 0);
 
-    /* by moving the window, the things in WM_SIZE are done */
-    mainWindow.SetWindowPlacement(&(registrySettings.WindowPlacement));
-
     /* Make the window visible on the screen */
-    ShowWindow (hwnd, nFunsterStil);
+    ShowWindow(hwnd, registrySettings.WindowPlacement.showCmd);
 
     /* inform the system, that the main window accepts dropped files */
     DragAcceptFiles(hwnd, TRUE);
