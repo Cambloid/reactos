@@ -437,17 +437,10 @@ LRESULT CMainWindow::OnKeyDown(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bH
         HWND hwndCapture = GetCapture();
         if (hwndCapture)
         {
-            if (selectionWindow.m_hWnd == hwndCapture ||
+            if (canvasWindow.m_hWnd == hwndCapture ||
+                selectionWindow.m_hWnd == hwndCapture ||
                 imageArea.m_hWnd == hwndCapture ||
-                fullscreenWindow.m_hWnd == hwndCapture ||
-                sizeboxLeftTop.m_hWnd == hwndCapture ||
-                sizeboxCenterTop.m_hWnd == hwndCapture ||
-                sizeboxRightTop.m_hWnd == hwndCapture ||
-                sizeboxLeftCenter.m_hWnd == hwndCapture ||
-                sizeboxRightCenter.m_hWnd == hwndCapture ||
-                sizeboxLeftBottom.m_hWnd == hwndCapture ||
-                sizeboxCenterBottom.m_hWnd == hwndCapture ||
-                sizeboxRightBottom.m_hWnd == hwndCapture)
+                fullscreenWindow.m_hWnd == hwndCapture)
             {
                 SendMessage(hwndCapture, nMsg, wParam, lParam);
             }
@@ -749,11 +742,13 @@ LRESULT CMainWindow::OnCommand(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bH
             break;
 
         case IDM_VIEWTOOLBOX:
-            toolBoxContainer.ShowWindow(::IsWindowVisible(toolBoxContainer) ? SW_HIDE : SW_SHOW);
+            registrySettings.ShowToolBox = !toolBoxContainer.IsWindowVisible();
+            toolBoxContainer.ShowWindow(registrySettings.ShowToolBox ? SW_SHOWNOACTIVATE : SW_HIDE);
             alignChildrenToMainWindow();
             break;
         case IDM_VIEWCOLORPALETTE:
-            paletteWindow.ShowWindow(::IsWindowVisible(paletteWindow) ? SW_HIDE : SW_SHOW);
+            registrySettings.ShowPalette = !paletteWindow.IsWindowVisible();
+            paletteWindow.ShowWindow(registrySettings.ShowPalette ? SW_SHOWNOACTIVATE : SW_HIDE);
             alignChildrenToMainWindow();
             break;
         case IDM_VIEWSTATUSBAR:

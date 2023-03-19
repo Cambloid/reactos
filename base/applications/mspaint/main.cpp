@@ -35,12 +35,6 @@ OPENFILENAME sfn;
 HICON hNontranspIcon;
 HICON hTranspIcon;
 
-HCURSOR hCurFill;
-HCURSOR hCurColor;
-HCURSOR hCurZoom;
-HCURSOR hCurPen;
-HCURSOR hCurAirbrush;
-
 HINSTANCE hProgInstance;
 
 TCHAR filepathname[1000];
@@ -63,14 +57,6 @@ CPaletteWindow paletteWindow;
 CCanvasWindow canvasWindow;
 CSelectionWindow selectionWindow;
 CImgAreaWindow imageArea;
-CSizeboxWindow sizeboxLeftTop;
-CSizeboxWindow sizeboxCenterTop;
-CSizeboxWindow sizeboxRightTop;
-CSizeboxWindow sizeboxLeftCenter;
-CSizeboxWindow sizeboxRightCenter;
-CSizeboxWindow sizeboxLeftBottom;
-CSizeboxWindow sizeboxCenterBottom;
-CSizeboxWindow sizeboxRightBottom;
 CTextEditWindow textEditWindow;
 
 // get file name extension from filter string
@@ -198,30 +184,19 @@ _tWinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPTSTR lpszArgument
     SetMenu(hwnd, menu);
     haccel = LoadAccelerators(hThisInstance, MAKEINTRESOURCE(800));
 
-    /* preloading the draw transparent/nontransparent icons for later use */
-    hNontranspIcon =
-        (HICON) LoadImage(hThisInstance, MAKEINTRESOURCE(IDI_NONTRANSPARENT), IMAGE_ICON, 40, 30, LR_DEFAULTCOLOR);
-    hTranspIcon =
-        (HICON) LoadImage(hThisInstance, MAKEINTRESOURCE(IDI_TRANSPARENT), IMAGE_ICON, 40, 30, LR_DEFAULTCOLOR);
-
-    hCurFill     = LoadIcon(hThisInstance, MAKEINTRESOURCE(IDC_FILL));
-    hCurColor    = LoadIcon(hThisInstance, MAKEINTRESOURCE(IDC_COLOR));
-    hCurZoom     = LoadIcon(hThisInstance, MAKEINTRESOURCE(IDC_ZOOM));
-    hCurPen      = LoadIcon(hThisInstance, MAKEINTRESOURCE(IDC_PEN));
-    hCurAirbrush = LoadIcon(hThisInstance, MAKEINTRESOURCE(IDC_AIRBRUSH));
-
-    CreateWindowEx(0, _T("STATIC"), NULL, WS_CHILD | WS_VISIBLE | SS_ETCHEDHORZ, 0, 0, 5000, 2, hwnd, NULL,
-                   hThisInstance, NULL);
-
     RECT toolBoxContainerPos = {2, 2, 2 + 52, 2 + 350};
-    toolBoxContainer.Create(hwnd, toolBoxContainerPos, NULL, WS_CHILD | WS_VISIBLE);
+    toolBoxContainer.Create(hwnd, toolBoxContainerPos, NULL, WS_CHILD);
+    if (registrySettings.ShowToolBox)
+        toolBoxContainer.ShowWindow(SW_SHOWNOACTIVATE);
     /* creating the tool settings child window */
     RECT toolSettingsWindowPos = {5, 208, 5 + 42, 208 + 140};
     toolSettingsWindow.Create(toolBoxContainer.m_hWnd, toolSettingsWindowPos, NULL, WS_CHILD | WS_VISIBLE);
 
     /* creating the palette child window */
     RECT paletteWindowPos = {56, 9, 56 + 255, 9 + 32};
-    paletteWindow.Create(hwnd, paletteWindowPos, NULL, WS_CHILD | WS_VISIBLE);
+    paletteWindow.Create(hwnd, paletteWindowPos, NULL, WS_CHILD, WS_EX_STATICEDGE);
+    if (registrySettings.ShowPalette)
+        paletteWindow.ShowWindow(SW_SHOWNOACTIVATE);
 
     // creating the canvas
     RECT canvasWindowPos = {0, 0, 0 + 500, 0 + 500};
@@ -306,16 +281,6 @@ _tWinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPTSTR lpszArgument
         }
     }
 
-    /* creating the size boxes */
-    RECT sizeboxPos = {0, 0, GRIP_SIZE, GRIP_SIZE};
-    sizeboxLeftTop.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxCenterTop.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxRightTop.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxLeftCenter.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxRightCenter.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxLeftBottom.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxCenterBottom.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
-    sizeboxRightBottom.Create(canvasWindow, sizeboxPos, NULL, WS_CHILD | WS_VISIBLE);
     /* placing the size boxes around the image */
     imageArea.SendMessage(WM_SIZE, 0, 0);
 

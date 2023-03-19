@@ -36,12 +36,6 @@ extern OPENFILENAME sfn;
 extern HICON hNontranspIcon;
 extern HICON hTranspIcon;
 
-extern HCURSOR hCurFill;
-extern HCURSOR hCurColor;
-extern HCURSOR hCurZoom;
-extern HCURSOR hCurPen;
-extern HCURSOR hCurAirbrush;
-
 extern HINSTANCE hProgInstance;
 
 extern TCHAR filepathname[1000];
@@ -76,14 +70,6 @@ extern CPaletteWindow paletteWindow;
 extern CCanvasWindow canvasWindow;
 extern CSelectionWindow selectionWindow;
 extern CImgAreaWindow imageArea;
-extern CSizeboxWindow sizeboxLeftTop;
-extern CSizeboxWindow sizeboxCenterTop;
-extern CSizeboxWindow sizeboxRightTop;
-extern CSizeboxWindow sizeboxLeftCenter;
-extern CSizeboxWindow sizeboxRightCenter;
-extern CSizeboxWindow sizeboxLeftBottom;
-extern CSizeboxWindow sizeboxCenterBottom;
-extern CSizeboxWindow sizeboxRightBottom;
 extern CTextEditWindow textEditWindow;
 
 /* VARIABLES declared in dialogs.cpp ********************************/
