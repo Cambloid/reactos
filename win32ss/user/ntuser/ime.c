@@ -78,6 +78,7 @@ UINT FASTCALL IntGetImeHotKeyLanguageScore(HKL hKL, LANGID HotKeyLangId)
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
+        ERR("!!!\n");
         lcid = MAKELCID(LANGID_NEUTRAL, SORT_DEFAULT);
     }
     _SEH2_END;
@@ -432,7 +433,8 @@ NtUserGetImeHotKey(DWORD dwHotKeyId, LPUINT lpuModifiers, LPUINT lpuVirtualKey, 
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
-        goto Quit;
+        ERR("!!!\n");
+        _SEH2_YIELD(goto Quit);
     }
     _SEH2_END;
 
@@ -449,6 +451,7 @@ NtUserGetImeHotKey(DWORD dwHotKeyId, LPUINT lpuModifiers, LPUINT lpuVirtualKey, 
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
+        ERR("!!!\n");
         pNode = NULL;
     }
     _SEH2_END;
@@ -737,7 +740,8 @@ NtUserBuildHimcList(DWORD dwThreadId, DWORD dwCount, HIMC *phList, LPDWORD pdwCo
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
-        goto Quit;
+        ERR("!!!\n");
+        _SEH2_YIELD(goto Quit);
     }
     _SEH2_END;
 
@@ -1039,7 +1043,8 @@ NtUserGetImeInfoEx(
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
-        goto Quit;
+        ERR("!!!\n");
+        _SEH2_YIELD(goto Quit);
     }
     _SEH2_END;
 
@@ -1054,6 +1059,7 @@ NtUserGetImeInfoEx(
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
+        ERR("!!!\n");
         ret = FALSE;
     }
     _SEH2_END;
@@ -1152,7 +1158,8 @@ NtUserSetImeInfoEx(PIMEINFOEX pImeInfoEx)
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
-        goto Quit;
+        ERR("!!!\n");
+        _SEH2_YIELD(goto Quit);
     }
     _SEH2_END;
 
@@ -2013,7 +2020,7 @@ PWND FASTCALL co_IntCreateDefaultImeWindow(PWND pwndTarget, HINSTANCE hInst)
         }
         _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
         {
-            NOTHING;
+            ERR("!!!\n");
         }
         _SEH2_END;
     }
@@ -2044,7 +2051,7 @@ BOOL FASTCALL IntImeCanDestroyDefIMEforChild(PWND pImeWnd, PWND pwndTarget)
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
-        NOTHING;
+        ERR("!!!\n");
     }
     _SEH2_END;
 
@@ -2089,7 +2096,7 @@ BOOL FASTCALL IntImeCanDestroyDefIME(PWND pImeWnd, PWND pwndTarget)
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
-        NOTHING;
+        ERR("!!!\n");
     }
     _SEH2_END;
 
@@ -2198,6 +2205,7 @@ BOOL FASTCALL IntCheckImeShowStatus(PWND pwndIme, PTHREADINFO pti)
         }
         _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
         {
+            ERR("!!!\n");
             pwndIMC = NULL;
         }
         _SEH2_END;
@@ -2227,7 +2235,6 @@ BOOL FASTCALL IntCheckImeShowStatus(PWND pwndIme, PTHREADINFO pti)
 }
 
 // Send a UI message.
-// Win: xxxSendMessageToUI
 LRESULT FASTCALL
 IntSendMessageToUI(PTHREADINFO ptiIME, PIMEUI pimeui, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -2253,6 +2260,7 @@ IntSendMessageToUI(PTHREADINFO ptiIME, PIMEUI pimeui, UINT uMsg, WPARAM wParam, 
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
+        ERR("!!!\n");
         pwndUI = NULL;
     }
     _SEH2_END;
@@ -2269,7 +2277,8 @@ IntSendMessageToUI(PTHREADINFO ptiIME, PIMEUI pimeui, UINT uMsg, WPARAM wParam, 
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
-        goto Quit;
+        ERR("!!!\n");
+        _SEH2_YIELD(goto Quit);
     }
     _SEH2_END;
 
@@ -2293,7 +2302,8 @@ IntSendMessageToUI(PTHREADINFO ptiIME, PIMEUI pimeui, UINT uMsg, WPARAM wParam, 
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
-        goto Quit;
+        ERR("!!!\n");
+        _SEH2_YIELD(goto Quit);
     }
     _SEH2_END;
 
@@ -2327,7 +2337,6 @@ IntSendOpenStatusNotify(PTHREADINFO ptiIME, PIMEUI pimeui, PWND pWnd, BOOL bOpen
 }
 
 // Update the IME status and send a notification.
-// Win: xxxNotifyImeShowStatus
 VOID FASTCALL IntNotifyImeShowStatus(PWND pImeWnd)
 {
     PIMEUI pimeui;
@@ -2367,9 +2376,12 @@ VOID FASTCALL IntNotifyImeShowStatus(PWND pImeWnd)
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
+        ERR("!!!\n");
+
         if (pti != ptiIME)
             KeDetachProcess();
-        return;
+
+        _SEH2_YIELD(return);
     }
     _SEH2_END;
 
