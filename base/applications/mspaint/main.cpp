@@ -57,7 +57,7 @@ CTextEditWindow textEditWindow;
 
 // get file name extension from filter string
 static BOOL
-FileExtFromFilter(LPTSTR pExt, LPCTSTR pTitle, OPENFILENAME *pOFN)
+FileExtFromFilter(LPTSTR pExt, OPENFILENAME *pOFN)
 {
     LPTSTR pchExt = pExt;
     *pchExt = 0;
@@ -96,19 +96,9 @@ OFNHookProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             hParent = GetParent(hwnd);
             TCHAR Path[MAX_PATH];
             SendMessage(hParent, CDM_GETFILEPATH, _countof(Path), (LPARAM)Path);
-            LPTSTR pchTitle = _tcsrchr(Path, _T('\\'));
-            if (pchTitle == NULL)
-                pchTitle = _tcsrchr(Path, _T('/'));
-
-            LPTSTR pch = _tcsrchr((pchTitle ? pchTitle : Path), _T('.'));
-            if (pch && pchTitle)
-            {
-                pchTitle++;
-                *pch = 0;
-                FileExtFromFilter(pch, pchTitle, pon->lpOFN);
-                SendMessage(hParent, CDM_SETCONTROLTEXT, 0x047c, (LPARAM)pchTitle);
-                lstrcpyn(pon->lpOFN->lpstrFile, Path, pon->lpOFN->nMaxFile);
-            }
+            FileExtFromFilter(PathFindExtension(Path), pon->lpOFN);
+            SendMessage(hParent, CDM_SETCONTROLTEXT, 0x047c, (LPARAM)PathFindFileName(Path));
+            lstrcpyn(pon->lpOFN->lpstrFile, Path, pon->lpOFN->nMaxFile);
         }
         break;
     }
@@ -180,13 +170,8 @@ _tWinMain (HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPTSTR lpszArgument
     SetMenu(hwnd, menu);
     haccel = LoadAccelerators(hThisInstance, MAKEINTRESOURCE(800));
 
-    RECT toolBoxContainerPos = {2, 2, 2 + 52, 2 + 350};
-    toolBoxContainer.Create(hwnd, toolBoxContainerPos, NULL, WS_CHILD);
-    if (registrySettings.ShowToolBox)
-        toolBoxContainer.ShowWindow(SW_SHOWNOACTIVATE);
-    /* creating the tool settings child window */
-    RECT toolSettingsWindowPos = {5, 208, 5 + 42, 208 + 140};
-    toolSettingsWindow.Create(toolBoxContainer.m_hWnd, toolSettingsWindowPos, NULL, WS_CHILD | WS_VISIBLE);
+    /* Create ToolBox */
+    toolBoxContainer.DoCreate(hwnd);
 
     /* creating the palette child window */
     RECT paletteWindowPos = {56, 9, 56 + 255, 9 + 32};
