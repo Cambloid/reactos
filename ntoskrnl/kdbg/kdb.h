@@ -1,5 +1,5 @@
 #pragma once
-#include "internal/kd.h"
+#include "../kd/kd.h"
 
 /* TYPES *********************************************************************/
 
@@ -51,12 +51,6 @@ typedef enum _KDB_ENTER_CONDITION
    KdbEnterFromUmode
 } KDB_ENTER_CONDITION;
 
-/* These values MUST be nonzero.  They're used as bit masks. */
-typedef enum _KDB_OUTPUT_SETTINGS
-{
-   KD_DEBUG_KDSERIAL = 1,
-   KD_DEBUG_KDNOECHO = 2
-} KDB_OUTPUT_SETTINGS;
 
 /* FUNCTIONS *****************************************************************/
 
@@ -104,10 +98,14 @@ KdbpCliMainLoop(
 VOID
 KdbpCliInterpretInitFile(VOID);
 
-SIZE_T
-KdbpReadCommand(
-    _Out_ PCHAR Buffer,
-    _In_ SIZE_T Size);
+VOID
+KdbpCommandHistoryAppend(
+    _In_ PCSTR Command);
+
+PCSTR
+KdbGetHistoryEntry(
+    _Inout_ PLONG NextIndex,
+    _In_ BOOLEAN Next);
 
 VOID
 KdbpPager(
@@ -183,7 +181,6 @@ extern LONG KdbLastBreakPointNr;
 extern ULONG KdbNumSingleSteps;
 extern BOOLEAN KdbSingleStepOver;
 extern PKDB_KTRAP_FRAME KdbCurrentTrapFrame;
-extern ULONG KdbDebugState;
 
 LONG
 KdbpGetNextBreakPointNr(
@@ -248,8 +245,8 @@ KdbpAttachToProcess(
    PVOID ProcessId);
 
 VOID
-NTAPI
-KdbpGetCommandLineSettings(PCHAR p1);
+KdbpGetCommandLineSettings(
+    _In_ PCSTR p1);
 
 KD_CONTINUE_TYPE
 KdbEnterDebuggerException(IN PEXCEPTION_RECORD64 ExceptionRecord,
@@ -258,6 +255,22 @@ KdbEnterDebuggerException(IN PEXCEPTION_RECORD64 ExceptionRecord,
                           IN BOOLEAN FirstChance);
 
 /* other functions */
+
+BOOLEAN
+NTAPI
+KdpSafeReadMemory(
+    IN ULONG_PTR Addr,
+    IN LONG Len,
+    OUT PVOID Value
+);
+
+BOOLEAN
+NTAPI
+KdpSafeWriteMemory(
+    IN ULONG_PTR Addr,
+    IN LONG Len,
+    IN ULONGLONG Value
+);
 
 NTSTATUS
 KdbpSafeReadMemory(OUT PVOID Dest,
@@ -268,14 +281,6 @@ NTSTATUS
 KdbpSafeWriteMemory(OUT PVOID Dest,
                     IN PVOID Src,
                     IN ULONG Bytes);
-
-#define KdbpGetCharKeyboard(ScanCode) KdbpTryGetCharKeyboard(ScanCode, 0)
-CHAR
-KdbpTryGetCharKeyboard(PULONG ScanCode, ULONG Retry);
-
-#define KdbpGetCharSerial()  KdbpTryGetCharSerial(0)
-CHAR
-KdbpTryGetCharSerial(ULONG Retry);
 
 VOID
 KbdDisableMouse(VOID);

@@ -7,9 +7,9 @@
  * PROGRAMMERS: Benedikt Freisen
  */
 
-/* INCLUDES *********************************************************/
-
 #include "precomp.h"
+
+CToolBox toolBoxContainer;
 
 /* FUNCTIONS ********************************************************/
 
@@ -114,7 +114,7 @@ LRESULT CToolBox::OnCommand(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHand
 
 LRESULT CToolBox::OnToolsModelToolChanged(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-    selectionWindow.ShowWindow(SW_HIDE);
+    selectionModel.m_bShow = FALSE;
     toolsModel.resetTool(); // resets the point-buffer of the polygon and bezier functions
 
     // Check the toolbar button

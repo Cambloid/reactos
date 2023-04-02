@@ -11,6 +11,8 @@
 
 #include <ntoskrnl.h>
 #include <reactos/buildno.h>
+#include "kd.h"
+#include "kdterminal.h"
 
 #define NDEBUG
 #include <debug.h>
@@ -151,8 +153,9 @@ KdpLoggerThread(PVOID Context)
 
 static VOID
 NTAPI
-KdpPrintToLogFile(PCHAR String,
-                  ULONG Length)
+KdpPrintToLogFile(
+    _In_ PCCH String,
+    _In_ ULONG Length)
 {
     KIRQL OldIrql;
     ULONG beg, end, num;
@@ -359,10 +362,11 @@ Failure:
 
 static VOID
 NTAPI
-KdpSerialPrint(PCHAR String,
-               ULONG Length)
+KdpSerialPrint(
+    _In_ PCCH String,
+    _In_ ULONG Length)
 {
-    PCHAR pch = String;
+    PCCH pch = String;
     KIRQL OldIrql;
 
     /* Acquire the printing spinlock without waiting at raised IRQL */
@@ -376,7 +380,7 @@ KdpSerialPrint(PCHAR String,
             KdPortPutByteEx(&SerialPortInfo, '\r');
         }
         KdPortPutByteEx(&SerialPortInfo, *pch);
-        pch++;
+        ++pch;
     }
 
     /* Release the spinlock */
@@ -456,10 +460,11 @@ KdpScreenRelease(VOID)
 
 static VOID
 NTAPI
-KdpScreenPrint(PCHAR String,
-               ULONG Length)
+KdpScreenPrint(
+    _In_ PCCH String,
+    _In_ ULONG Length)
 {
-    PCHAR pch = String;
+    PCCH pch = String;
 
     while (pch < String + Length && *pch)
     {
@@ -538,6 +543,57 @@ KdpScreenInit(
 
 /* GENERAL FUNCTIONS *********************************************************/
 
+static VOID
+KdIoPrintString(
+    _In_ PCCH String,
+    _In_ ULONG Length)
+{
+    PLIST_ENTRY CurrentEntry;
+    PKD_DISPATCH_TABLE CurrentTable;
+
+    /* Call the registered providers */
+    for (CurrentEntry = KdProviders.Flink;
+         CurrentEntry != &KdProviders;
+         CurrentEntry = CurrentEntry->Flink)
+    {
+        CurrentTable = CONTAINING_RECORD(CurrentEntry,
+                                         KD_DISPATCH_TABLE,
+                                         KdProvidersList);
+
+        CurrentTable->KdpPrintRoutine(String, Length);
+    }
+}
+
+VOID
+KdIoPuts(
+    _In_ PCSTR String)
+{
+    KdIoPrintString(String, (ULONG)strlen(String));
+}
+
+VOID
+__cdecl
+KdIoPrintf(
+    _In_ PCSTR Format,
+    ...)
+{
+    va_list ap;
+    ULONG Length;
+    CHAR Buffer[512];
+
+    /* Format the string */
+    va_start(ap, Format);
+    Length = (ULONG)_vsnprintf(Buffer,
+                               sizeof(Buffer),
+                               Format,
+                               ap);
+    va_end(ap);
+
+    /* Send it to the display providers */
+    KdIoPrintString(Buffer, Length);
+}
+
+
 extern STRING KdbPromptString;
 
 VOID
@@ -551,8 +607,6 @@ KdSendPacket(
     if (PacketType == PACKET_TYPE_KD_DEBUG_IO)
     {
         ULONG ApiNumber = ((PDBGKD_DEBUG_IO)MessageHeader->Buffer)->ApiNumber;
-        PLIST_ENTRY CurrentEntry;
-        PKD_DISPATCH_TABLE CurrentTable;
 
         /* Validate API call */
         if (MessageHeader->Length != sizeof(DBGKD_DEBUG_IO))
@@ -572,17 +626,8 @@ KdSendPacket(
         if (!KdpDebugMode.Value)
             return;
 
-        /* Call the registered providers */
-        for (CurrentEntry = KdProviders.Flink;
-             CurrentEntry != &KdProviders;
-             CurrentEntry = CurrentEntry->Flink)
-        {
-            CurrentTable = CONTAINING_RECORD(CurrentEntry,
-                                             KD_DISPATCH_TABLE,
-                                             KdProvidersList);
-
-            CurrentTable->KdpPrintRoutine(MessageData->Buffer, MessageData->Length);
-        }
+        /* Print the string proper */
+        KdIoPrintString(MessageData->Buffer, MessageData->Length);
         return;
     }
     else if (PacketType == PACKET_TYPE_KD_STATE_CHANGE64)
@@ -735,8 +780,8 @@ KdReceivePacket(
      * in which case the string is simply truncated without NULL-termination.
      */
     ResponseString.Length =
-        (USHORT)KdbpReadCommand(ResponseString.Buffer,
-                                ResponseString.MaximumLength);
+        (USHORT)KdIoReadLine(ResponseString.Buffer,
+                             ResponseString.MaximumLength);
 
     if (!(KdbDebugState & KD_DEBUG_KDSERIAL))
         KbdEnableMouse();
