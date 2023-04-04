@@ -88,20 +88,42 @@ void CMainWindow::alignChildrenToMainWindow()
 
     if (::IsWindowVisible(toolBoxContainer))
     {
-        hDWP = ::DeferWindowPos(hDWP, toolBoxContainer, NULL,
-                                rcSpace.left, rcSpace.top,
-                                CX_TOOLBAR, rcSpace.bottom - rcSpace.top,
-                                SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREPOSITION);
-        rcSpace.left += CX_TOOLBAR;
+        if (registrySettings.Bar2ID == BAR2ID_RIGHT)
+        {
+            hDWP = ::DeferWindowPos(hDWP, toolBoxContainer, NULL,
+                                    rcSpace.right - CX_TOOLBAR, rcSpace.top,
+                                    CX_TOOLBAR, rcSpace.bottom - rcSpace.top,
+                                    SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREPOSITION);
+            rcSpace.right -= CX_TOOLBAR;
+        }
+        else
+        {
+            hDWP = ::DeferWindowPos(hDWP, toolBoxContainer, NULL,
+                                    rcSpace.left, rcSpace.top,
+                                    CX_TOOLBAR, rcSpace.bottom - rcSpace.top,
+                                    SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREPOSITION);
+            rcSpace.left += CX_TOOLBAR;
+        }
     }
 
     if (::IsWindowVisible(paletteWindow))
     {
-        hDWP = ::DeferWindowPos(hDWP, paletteWindow, NULL,
-                                rcSpace.left, rcSpace.top,
-                                rcSpace.right - rcSpace.left, CY_PALETTE,
-                                SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREPOSITION);
-        rcSpace.top += CY_PALETTE;
+        if (registrySettings.Bar1ID == BAR1ID_BOTTOM)
+        {
+            hDWP = ::DeferWindowPos(hDWP, paletteWindow, NULL,
+                                    rcSpace.left, rcSpace.bottom - CY_PALETTE,
+                                    rcSpace.right - rcSpace.left, CY_PALETTE,
+                                    SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREPOSITION);
+            rcSpace.bottom -= CY_PALETTE;
+        }
+        else
+        {
+            hDWP = ::DeferWindowPos(hDWP, paletteWindow, NULL,
+                                    rcSpace.left, rcSpace.top,
+                                    rcSpace.right - rcSpace.left, CY_PALETTE,
+                                    SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREPOSITION);
+            rcSpace.top += CY_PALETTE;
+        }
     }
 
     if (canvasWindow.IsWindow())
