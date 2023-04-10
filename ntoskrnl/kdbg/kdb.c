@@ -10,6 +10,8 @@
 /* INCLUDES ******************************************************************/
 
 #include <ntoskrnl.h>
+#include "kdb.h"
+
 #define NDEBUG
 #include <debug.h>
 
@@ -200,7 +202,7 @@ KdbpOverwriteInstruction(
             /* Detach from process */
             if (CurrentProcess != Process)
             {
-                KeDetachProcess();
+                KeUnstackDetachProcess(&ApcState);
             }
 
             return Status;
