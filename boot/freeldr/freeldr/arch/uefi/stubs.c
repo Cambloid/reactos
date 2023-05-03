@@ -9,12 +9,14 @@
 
 #include <debug.h>
 
+#ifndef _M_ARM
 /* TODO: Handle this with custom Disk / partition setup */
 UCHAR
 DriveMapGetBiosDriveNumber(PCSTR DeviceName)
 {
     return 0;
 }
+#endif
 
 VOID
 StallExecutionProcessor(ULONG Microseconds)
@@ -46,40 +48,6 @@ UefiGetExtendedBIOSData(PULONG ExtendedBIOSDataArea,
                         PULONG ExtendedBIOSDataSize)
 {
 
-}
-
-UCHAR
-UefiGetFloppyCount(VOID)
-{
-    return 0;
-}
-
-BOOLEAN
-UefiDiskReadLogicalSectors(IN UCHAR DriveNumber,
-                           IN ULONGLONG SectorNumber,
-                           IN ULONG SectorCount,
-                           OUT PVOID Buffer)
-{
-    return 0;
-}
-
-BOOLEAN
-UefiDiskGetDriveGeometry(UCHAR DriveNumber,
-                         PGEOMETRY Geometry)
-{
-    return 0;
-}
-
-ULONG
-UefiDiskGetCacheableBlockCount(UCHAR DriveNumber)
-{
-    return 0;
-}
-
-BOOLEAN
-UefiInitializeBootDevices(VOID)
-{
-    return 0;
 }
 
 PCONFIGURATION_COMPONENT_DATA
