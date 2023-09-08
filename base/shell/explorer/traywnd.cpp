@@ -99,6 +99,20 @@ VOID RestoreWindowPos()
     g_WindowPosBackup.RemoveAll();
 }
 
+BOOL CanBeMinimized(HWND hwnd)
+{
+    if (::IsWindowVisible(hwnd) && !::IsIconic(hwnd) && ::IsWindowEnabled(hwnd))
+    {
+        if (::GetClassLongPtrW(hwnd, GCW_ATOM) == (ULONG_PTR)WC_DIALOG)
+            return TRUE;
+
+        DWORD exstyle = (DWORD)::GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        if (!(exstyle & WS_EX_TOPMOST))
+            return TRUE;
+    }
+    return FALSE;
+}
+
 struct EFFECTIVE_INFO
 {
     HWND hwndFound;
@@ -113,7 +127,7 @@ FindEffectiveProc(HWND hwnd, LPARAM lParam)
 {
     EFFECTIVE_INFO *pei = (EFFECTIVE_INFO *)lParam;
 
-    if (!IsWindowVisible(hwnd) || IsIconic(hwnd))
+    if (!CanBeMinimized(hwnd))
         return TRUE;    // continue
 
     if (pei->hTrayWnd == hwnd || pei->hwndDesktop == hwnd ||
@@ -159,13 +173,6 @@ IsThereAnyEffectiveWindow(BOOL bMustBeInMonitor)
     ei.bMustBeInMonitor = bMustBeInMonitor;
 
     EnumWindows(FindEffectiveProc, (LPARAM)&ei);
-    if (ei.hwndFound && FALSE)
-    {
-        WCHAR szClass[64], szText[64];
-        GetClassNameW(ei.hwndFound, szClass, _countof(szClass));
-        GetWindowTextW(ei.hwndFound, szText, _countof(szText));
-        MessageBoxW(NULL, szText, szClass, 0);
-    }
     return ei.hwndFound != NULL;
 }
 
@@ -843,10 +850,7 @@ public:
             break;
 
         case ID_LOCKTASKBAR:
-            if (SHRestricted(REST_CLASSICSHELL) == 0)
-            {
-                Lock(!g_TaskbarSettings.bLock);
-            }
+            HandleCommand(TRAYCMD_LOCK_TASKBAR);
             break;
 
         case ID_SHELL_CMD_OPEN_TASKMGR:
@@ -1016,6 +1020,7 @@ public:
                 if (SHRestricted(REST_CLASSICSHELL) == 0)
                 {
                     Lock(!g_TaskbarSettings.bLock);
+                    g_TaskbarSettings.Save();
                 }
                 break;
             case TRAYCMD_HELP_AND_SUPPORT:
@@ -1609,6 +1614,8 @@ GetPrimaryScreenRect:
 
             m_Monitor = m_DraggingMonitor;
             m_Position = m_DraggingPosition;
+            g_TaskbarSettings.sr.Position = m_Position;
+            g_TaskbarSettings.Save();
             IsDragging = FALSE;
 
             m_TrayRects[m_Position] = rcTray;
@@ -2524,15 +2531,6 @@ ChangePos:
         return m_ContextMenu->GetCommandString(idCmd, uType, pwReserved, pszName, cchMax);
     }
 
-    BOOL IsShowDesktopButtonNeeded() // Read the registry value
-    {
-        return SHRegGetBoolUSValueW(
-            L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-            L"TaskbarSd",
-            FALSE,
-            TRUE);
-    }
-
     /**********************************************************
      *    ##### message handling #####
      */
@@ -2549,7 +2547,7 @@ ChangePos:
         m_StartButton.Create(m_hWnd);
 
         /* Create the 'Show Desktop' button if necessary */
-        if (IsShowDesktopButtonNeeded())
+        if (g_TaskbarSettings.bShowDesktopButton)
             m_ShowDesktopButton.DoCreate(m_hWnd);
 
         /* Load the saved tray window settings */
@@ -2689,7 +2687,7 @@ ChangePos:
 
     LRESULT OnCopyData(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
     {
-        COPYDATASTRUCT *pCopyData = reinterpret_cast<COPYDATASTRUCT *>(lParam);
+        COPYDATASTRUCT *pCopyData = (COPYDATASTRUCT *)lParam;
         switch (pCopyData->dwData)
         {
             case TABDMC_APPBAR:
@@ -3131,7 +3129,7 @@ HandleTrayContextMenu:
 
     LRESULT OnNcLButtonDblClick(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
     {
-        /* Let the clock handle the double click */
+        /* Let the clock handle the double-click */
         ::SendMessageW(m_TrayNotify, uMsg, wParam, lParam);
 
         /* We "handle" this message so users can't cause a weird maximize/restore
@@ -3262,16 +3260,14 @@ HandleTrayContextMenu:
                 return TRUE;
         }
 
-        if (::IsWindowVisible(hwnd) && !::IsIconic(hwnd))
+        if (CanBeMinimized(hwnd))
         {
-            MINWNDPOS mwp;
-            mwp.hwnd = hwnd;
-            mwp.wndpl.length = sizeof(mwp.wndpl);
-            ::GetWindowPlacement(hwnd, &mwp.wndpl); // Save the position and status
-
-            info->pMinimizedAll->Add(mwp);
-
-            ::ShowWindowAsync(hwnd, SW_MINIMIZE);
+            MINWNDPOS mwp = { hwnd, { sizeof(mwp.wndpl) } };
+            if (::GetWindowPlacement(hwnd, &mwp.wndpl) && // Save the position and status
+                ::ShowWindowAsync(hwnd, SW_SHOWMINNOACTIVE)) // Minimize
+            {
+                info->pMinimizedAll->Add(mwp);
+            }
         }
 
         return TRUE;
@@ -3309,9 +3305,7 @@ HandleTrayContextMenu:
         {
             HWND hwnd = g_MinimizedAll[i].hwnd;
             if (::IsWindowVisible(hwnd) && ::IsIconic(hwnd))
-            {
                 ::SetWindowPlacement(hwnd, &g_MinimizedAll[i].wndpl);
-            }
         }
 
         g_MinimizedAll.RemoveAll();
@@ -3521,6 +3515,20 @@ HandleTrayContextMenu:
             HWND hWndInsertAfter = newSettings->sr.AlwaysOnTop ? HWND_TOPMOST : HWND_BOTTOM;
             SetWindowPos(hWndInsertAfter, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
         }
+
+        /* Toggle show desktop button */
+        if (newSettings->bShowDesktopButton != g_TaskbarSettings.bShowDesktopButton)
+        {
+            g_TaskbarSettings.bShowDesktopButton = newSettings->bShowDesktopButton;
+            if (!g_TaskbarSettings.bShowDesktopButton)
+                ::DestroyWindow(m_ShowDesktopButton.m_hWnd);
+            else if (!m_ShowDesktopButton.IsWindow())
+                m_ShowDesktopButton.DoCreate(m_hWnd);
+            AlignControls(NULL);
+        }
+
+        /* Adjust taskbar size */
+        CheckTrayWndPosition();
 
         g_TaskbarSettings.Save();
         return 0;

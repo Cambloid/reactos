@@ -1,11 +1,10 @@
 /*
- * PROJECT:     PAINT for ReactOS
- * LICENSE:     LGPL
- * FILE:        base/applications/mspaint/toolsettings.cpp
- * PURPOSE:     Window procedure of the tool settings window
- * PROGRAMMERS: Benedikt Freisen
- *              Stanislav Motylkov
- *              Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>
+ * PROJECT:    PAINT for ReactOS
+ * LICENSE:    LGPL-2.0-or-later (https://spdx.org/licenses/LGPL-2.0-or-later)
+ * PURPOSE:    Window procedure of the tool settings window
+ * COPYRIGHT:  Copyright 2015 Benedikt Freisen <b.freisen@gmx.net>
+ *             Copyright 2018 Stanislav Motylkov <x86corez@gmail.com>
+ *             Copyright 2021-2023 Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>
  */
 
 /* INCLUDES *********************************************************/
@@ -69,8 +68,7 @@ VOID CToolSettingsWindow::drawTrans(HDC hdc, LPCRECT prc)
     RECT rc[2];
     getTransRects(rc, prc);
 
-    HBRUSH hbrHigh = ::GetSysColorBrush(COLOR_HIGHLIGHT);
-    ::FillRect(hdc, &rc[toolsModel.IsBackgroundTransparent()], hbrHigh);
+    ::FillRect(hdc, &rc[toolsModel.IsBackgroundTransparent()], (HBRUSH)(COLOR_HIGHLIGHT + 1));
     ::DrawIconEx(hdc, rc[0].left, rc[0].top, m_hNontranspIcon,
                  CX_TRANS_ICON, CY_TRANS_ICON, 0, NULL, DI_NORMAL);
     ::DrawIconEx(hdc, rc[1].left, rc[1].top, m_hTranspIcon,
@@ -119,8 +117,7 @@ VOID CToolSettingsWindow::drawBrush(HDC hdc, LPCRECT prc)
     RECT rects[12];
     getBrushRects(rects, prc);
 
-    HBRUSH hbrHigh = ::GetSysColorBrush(COLOR_HIGHLIGHT);
-    ::FillRect(hdc, &rects[toolsModel.GetBrushStyle()], hbrHigh);
+    ::FillRect(hdc, &rects[toolsModel.GetBrushStyle()], (HBRUSH)(COLOR_HIGHLIGHT + 1));
 
     for (INT i = 0; i < 12; i++)
     {
@@ -202,11 +199,14 @@ VOID CToolSettingsWindow::drawAirBrush(HDC hdc, LPCRECT prc)
         if (bHigh)
         {
             ::FillRect(hdc, &rc, ::GetSysColorBrush(COLOR_HIGHLIGHT));
-            Airbrush(hdc, x, y, ::GetSysColor(COLOR_HIGHLIGHTTEXT), s_AirRadius[i]);
+
+            for (int k = 0; k < 3; ++k)
+                Airbrush(hdc, x, y, ::GetSysColor(COLOR_HIGHLIGHTTEXT), s_AirRadius[i]);
         }
         else
         {
-            Airbrush(hdc, x, y, ::GetSysColor(COLOR_WINDOWTEXT), s_AirRadius[i]);
+            for (int k = 0; k < 3; ++k)
+                Airbrush(hdc, x, y, ::GetSysColor(COLOR_WINDOWTEXT), s_AirRadius[i]);
         }
     }
 }
@@ -260,9 +260,9 @@ VOID CToolSettingsWindow::drawBox(HDC hdc, LPCRECT prc)
 LRESULT CToolSettingsWindow::OnCreate(UINT nMsg, WPARAM wParam, LPARAM lParam, WINBOOL& bHandled)
 {
     /* preloading the draw transparent/nontransparent icons for later use */
-    m_hNontranspIcon = (HICON)LoadImage(hProgInstance, MAKEINTRESOURCE(IDI_NONTRANSPARENT),
+    m_hNontranspIcon = (HICON)LoadImage(g_hinstExe, MAKEINTRESOURCE(IDI_NONTRANSPARENT),
                                         IMAGE_ICON, CX_TRANS_ICON, CY_TRANS_ICON, LR_DEFAULTCOLOR);
-    m_hTranspIcon = (HICON)LoadImage(hProgInstance, MAKEINTRESOURCE(IDI_TRANSPARENT),
+    m_hTranspIcon = (HICON)LoadImage(g_hinstExe, MAKEINTRESOURCE(IDI_TRANSPARENT),
                                      IMAGE_ICON, CX_TRANS_ICON, CY_TRANS_ICON, LR_DEFAULTCOLOR);
 
     RECT trackbarZoomPos = {1, 1, 1 + 40, 1 + 64};

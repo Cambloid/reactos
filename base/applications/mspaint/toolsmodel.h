@@ -1,9 +1,8 @@
 /*
- * PROJECT:     PAINT for ReactOS
- * LICENSE:     LGPL
- * FILE:        base/applications/mspaint/toolsmodel.h
- * PURPOSE:     Keep track of tool parameters, notify listeners
- * PROGRAMMERS: Benedikt Freisen
+ * PROJECT:    PAINT for ReactOS
+ * LICENSE:    LGPL-2.0-or-later (https://spdx.org/licenses/LGPL-2.0-or-later)
+ * PURPOSE:    Keep track of tool parameters, notify listeners
+ * COPYRIGHT:  Copyright 2015 Benedikt Freisen <b.freisen@gmx.net>
  */
 
 #pragma once
@@ -36,37 +35,30 @@ struct ToolBase
     TOOLTYPE m_tool;
     HDC m_hdc;
     COLORREF m_fg, m_bg;
-    static INT pointSP;
-    static POINT pointStack[256];
+    static INT s_pointSP;
+    static POINT s_pointStack[256];
 
-    ToolBase(TOOLTYPE tool) : m_tool(tool), m_hdc(NULL)
-    {
-    }
+    ToolBase(TOOLTYPE tool) : m_tool(tool), m_hdc(NULL) { }
+    virtual ~ToolBase() { }
 
-    virtual ~ToolBase()
-    {
-    }
-
-    virtual void OnButtonDown(BOOL bLeftButton, LONG x, LONG y, BOOL bDoubleClick)
-    {
-    }
-
-    virtual void OnMouseMove(BOOL bLeftButton, LONG x, LONG y)
-    {
-    }
-
-    virtual void OnButtonUp(BOOL bLeftButton, LONG x, LONG y)
-    {
-    }
+    virtual void OnButtonDown(BOOL bLeftButton, LONG x, LONG y, BOOL bDoubleClick) { }
+    virtual void OnMouseMove(BOOL bLeftButton, LONG x, LONG y) { }
+    virtual void OnButtonUp(BOOL bLeftButton, LONG x, LONG y) { }
 
     virtual void OnCancelDraw();
     virtual void OnFinishDraw();
+
+    virtual void OnDrawOverlayOnImage(HDC hdc) { }
+    virtual void OnDrawOverlayOnCanvas(HDC hdc) { }
 
     void beginEvent();
     void endEvent();
     void reset();
 
     static ToolBase* createToolObject(TOOLTYPE type);
+
+protected:
+    void OnDrawSelectionOnCanvas(HDC hdc);
 };
 
 class ToolsModel
@@ -89,6 +81,8 @@ private:
 public:
     ToolsModel();
     ~ToolsModel();
+
+    BOOL IsSelection() const;
     int GetLineWidth() const;
     void SetLineWidth(int nLineWidth);
     int GetShapeStyle() const;
@@ -112,6 +106,8 @@ public:
     void OnButtonUp(BOOL bLeftButton, LONG x, LONG y);
     void OnCancelDraw();
     void OnFinishDraw();
+    void OnDrawOverlayOnImage(HDC hdc);
+    void OnDrawOverlayOnCanvas(HDC hdc);
 
     void resetTool();
     void selectAll();

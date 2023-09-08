@@ -1,9 +1,8 @@
 /*
- * PROJECT:     PAINT for ReactOS
- * LICENSE:     LGPL
- * FILE:        base/applications/mspaint/textedit.cpp
- * PURPOSE:     Text editor and font chooser for the text tool
- * PROGRAMMERS: Benedikt Freisen
+ * PROJECT:    PAINT for ReactOS
+ * LICENSE:    LGPL-2.0-or-later (https://spdx.org/licenses/LGPL-2.0-or-later)
+ * PURPOSE:    Text editor and font chooser for the text tool
+ * COPYRIGHT:  Copyright 2015 Benedikt Freisen <b.freisen@gmx.net>
  */
 
 #include "precomp.h"
@@ -14,7 +13,9 @@ CTextEditWindow textEditWindow;
 
 /* FUNCTIONS ********************************************************/
 
-CTextEditWindow::CTextEditWindow() : m_hFont(NULL), m_hFontZoomed(NULL), m_nAppIsMovingOrSizing(0)
+CTextEditWindow::CTextEditWindow()
+    : m_hFont(NULL)
+    , m_hFontZoomed(NULL)
 {
     SetRectEmpty(&m_rc);
 }
@@ -61,7 +62,7 @@ void CTextEditWindow::FixEditPos(LPCTSTR pszOldText)
         SelectObject(hDC, m_hFontZoomed);
         TEXTMETRIC tm;
         GetTextMetrics(hDC, &tm);
-        szText += TEXT("x"); // This is a trick to enable the last newlines
+        szText += TEXT("x"); // This is a trick to enable the g_ptEnd newlines
         const UINT uFormat = DT_LEFT | DT_TOP | DT_EDITCONTROL | DT_NOPREFIX | DT_NOCLIP |
                              DT_EXPANDTABS | DT_WORDBREAK;
         DrawText(hDC, szText, -1, &rcText, uFormat | DT_CALCRECT);
@@ -77,9 +78,7 @@ void CTextEditWindow::FixEditPos(LPCTSTR pszOldText)
     ::GetClientRect(m_hwndParent, &rcParent);
     IntersectRect(&rc, &rcParent, &rcWnd);
 
-    ++m_nAppIsMovingOrSizing;
     MoveWindow(rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, FALSE);
-    --m_nAppIsMovingOrSizing;
 
     DefWindowProc(WM_HSCROLL, SB_LEFT, 0);
     DefWindowProc(WM_VSCROLL, SB_TOP, 0);
@@ -200,12 +199,6 @@ LRESULT CTextEditWindow::OnSetCursor(UINT nMsg, WPARAM wParam, LPARAM lParam, BO
 LRESULT CTextEditWindow::OnMove(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
     LRESULT ret = DefWindowProc(nMsg, wParam, lParam);
-
-    if (m_nAppIsMovingOrSizing == 0)
-    {
-        Reposition();
-        InvalidateEditRect();
-    }
     return ret;
 }
 
@@ -218,12 +211,6 @@ LRESULT CTextEditWindow::OnSize(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& b
     SendMessage(EM_SETRECTNP, 0, (LPARAM)&rc);
     SendMessage(EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELONG(0, 0));
 
-    if (m_nAppIsMovingOrSizing == 0)
-    {
-        Reposition();
-        InvalidateEditRect();
-    }
-
     return ret;
 }
 
@@ -235,7 +222,7 @@ HWND CTextEditWindow::Create(HWND hwndParent)
     const DWORD style = ES_LEFT | ES_MULTILINE | ES_WANTRETURN | ES_AUTOVSCROLL |
                         WS_CHILD | WS_THICKFRAME;
     HWND hwnd = ::CreateWindowEx(0, WC_EDIT, NULL, style, 0, 0, 0, 0,
-                                 hwndParent, NULL, hProgInstance, NULL);
+                                 hwndParent, NULL, g_hinstExe, NULL);
     if (hwnd)
     {
 #undef SubclassWindow // Don't use this macro
@@ -395,41 +382,131 @@ void CTextEditWindow::ValidateEditRect(LPCRECT prc OPTIONAL)
     CRect rc = m_rc;
     canvasWindow.ImageToCanvas(rc);
 
-    ++m_nAppIsMovingOrSizing;
     MoveWindow(rc.left, rc.top, rc.Width(), rc.Height(), TRUE);
-    --m_nAppIsMovingOrSizing;
 }
 
-void CTextEditWindow::Reposition()
+LRESULT CTextEditWindow::OnMoving(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-    CRect rc;
-    GetWindowRect(&rc);
-    ::MapWindowPoints(NULL, canvasWindow, (LPPOINT)&rc, 2);
-    canvasWindow.CanvasToImage(rc);
+    // Restrict the window position to the image area
+    LPRECT prcMoving = (LPRECT)lParam;
+    CRect rcMoving = *prcMoving;
 
     CRect rcImage;
     canvasWindow.GetImageRect(rcImage);
+    canvasWindow.ImageToCanvas(rcImage);
+    canvasWindow.MapWindowPoints(NULL, &rcImage);
 
-    if (rc.bottom > rcImage.bottom)
-        ::OffsetRect(&rc, 0, rcImage.Height());
+    CRect rcWnd;
+    GetWindowRect(&rcWnd);
+    INT cx = rcWnd.Width(), cy = rcWnd.Height();
 
-    if (rc.right > rcImage.right)
-        ::OffsetRect(&rc, rcImage.Width(), 0);
+    if (rcMoving.left < rcImage.left)
+    {
+        rcMoving.left = rcImage.left;
+        rcMoving.right = rcImage.left + cx;
+    }
+    else if (rcMoving.right > rcImage.right)
+    {
+        rcMoving.right = rcImage.right;
+        rcMoving.left = rcImage.right - cx;
+    }
 
-    if (rc.left < 0)
-        ::OffsetRect(&rc, -rc.left, 0);
+    if (rcMoving.top < rcImage.top)
+    {
+        rcMoving.top = rcImage.top;
+        rcMoving.bottom = rcImage.top + cy;
+    }
+    else if (rcMoving.bottom > rcImage.bottom)
+    {
+        rcMoving.bottom = rcImage.bottom;
+        rcMoving.top = rcImage.bottom - cy;
+    }
 
-    if (rc.top < 0)
-        ::OffsetRect(&rc, 0, -rc.top);
+    *prcMoving = rcMoving;
+    Invalidate(TRUE);
+    return TRUE;
+}
 
-    canvasWindow.ImageToCanvas(rc);
+LRESULT CTextEditWindow::OnSizing(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+    // Restrict the window size to the image area
+    LPRECT prcSizing = (LPRECT)lParam;
+    CRect rcSizing = *prcSizing;
 
-    ++m_nAppIsMovingOrSizing;
-    MoveWindow(rc.left, rc.top, rc.Width(), rc.Height(), TRUE);
-    --m_nAppIsMovingOrSizing;
+    CRect rcImage;
+    canvasWindow.GetImageRect(rcImage);
+    canvasWindow.ImageToCanvas(rcImage);
+    canvasWindow.MapWindowPoints(NULL, &rcImage);
+
+    // Horizontally
+    switch (wParam)
+    {
+        case WMSZ_BOTTOMLEFT:
+        case WMSZ_LEFT:
+        case WMSZ_TOPLEFT:
+            if (rcSizing.left < rcImage.left)
+                rcSizing.left = rcImage.left;
+            break;
+        case WMSZ_BOTTOMRIGHT:
+        case WMSZ_RIGHT:
+        case WMSZ_TOPRIGHT:
+            if (rcSizing.right > rcImage.right)
+                rcSizing.right = rcImage.right;
+            break;
+        case WMSZ_TOP:
+        case WMSZ_BOTTOM:
+        default:
+            break;
+    }
+
+    // Vertically
+    switch (wParam)
+    {
+        case WMSZ_BOTTOM:
+        case WMSZ_BOTTOMLEFT:
+        case WMSZ_BOTTOMRIGHT:
+            if (rcSizing.bottom > rcImage.bottom)
+                rcSizing.bottom = rcImage.bottom;
+            break;
+        case WMSZ_TOP:
+        case WMSZ_TOPLEFT:
+        case WMSZ_TOPRIGHT:
+            if (rcSizing.top < rcImage.top)
+                rcSizing.top = rcImage.top;
+            break;
+        case WMSZ_LEFT:
+        case WMSZ_RIGHT:
+        default:
+            break;
+    }
+
+    *prcSizing = rcSizing;
+    Invalidate(TRUE);
+    return TRUE;
 }
 
 LRESULT CTextEditWindow::OnMouseWheel(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
     return ::SendMessage(GetParent(), nMsg, wParam, lParam);
+}
+
+LRESULT CTextEditWindow::OnCut(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+    LRESULT ret = DefWindowProc(nMsg, wParam, lParam);
+    Invalidate(TRUE); // Redraw
+    return ret;
+}
+
+LRESULT CTextEditWindow::OnPaste(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+    LRESULT ret = DefWindowProc(nMsg, wParam, lParam);
+    FixEditPos(NULL);
+    return ret;
+}
+
+LRESULT CTextEditWindow::OnClear(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+    LRESULT ret = DefWindowProc(nMsg, wParam, lParam);
+    Invalidate(TRUE); // Redraw
+    return ret;
 }

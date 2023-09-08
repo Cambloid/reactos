@@ -1,9 +1,8 @@
 /*
- * PROJECT:     PAINT for ReactOS
- * LICENSE:     LGPL
- * FILE:        base/applications/mspaint/canvas.h
- * PURPOSE:     Providing the canvas window class
- * PROGRAMMERS: Benedikt Freisen
+ * PROJECT:    PAINT for ReactOS
+ * LICENSE:    LGPL-2.0-or-later (https://spdx.org/licenses/LGPL-2.0-or-later)
+ * PURPOSE:    Providing the canvas window class
+ * COPYRIGHT:  Copyright 2015 Benedikt Freisen <b.freisen@gmx.net>
  */
 
 #pragma once
@@ -11,7 +10,8 @@
 class CCanvasWindow : public CWindowImpl<CCanvasWindow>
 {
 public:
-    DECLARE_WND_CLASS_EX(_T("ReactOSPaintCanvas"), CS_DBLCLKS, COLOR_APPWORKSPACE)
+    DECLARE_WND_CLASS_EX(_T("ReactOSPaintCanvas"), CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW,
+                         COLOR_APPWORKSPACE)
 
     BEGIN_MSG_MAP(CCanvasWindow)
         MESSAGE_HANDLER(WM_SIZE, OnSize)
@@ -32,9 +32,11 @@ public:
         MESSAGE_HANDLER(WM_CANCELMODE, OnCancelMode)
         MESSAGE_HANDLER(WM_CAPTURECHANGED, OnCaptureChanged)
         MESSAGE_HANDLER(WM_CTLCOLOREDIT, OnCtlColorEdit)
+        MESSAGE_HANDLER(WM_PALETTEMODELCOLORCHANGED, OnPaletteModelColorChanged)
     END_MSG_MAP()
 
     CCanvasWindow();
+    virtual ~CCanvasWindow();
 
     BOOL m_drawing;
 
@@ -47,23 +49,25 @@ public:
     VOID CanvasToImage(POINT& pt, BOOL bZoomed = FALSE);
     VOID CanvasToImage(RECT& rc, BOOL bZoomed = FALSE);
     VOID GetImageRect(RECT& rc);
+    VOID MoveSelection(INT xDelta, INT yDelta);
 
 protected:
-    CANVAS_HITTEST m_hitSelection;
-    CANVAS_HITTEST m_whereHit;
+    HITTEST m_hitSelection;
+    HITTEST m_hitCanvasSizeBox;
     POINT m_ptOrig; // The origin of drag start
-    CRect m_rcNew;
+    HBITMAP m_ahbmCached[2]; // The cached buffer bitmaps
+    CRect m_rcResizing; // Resizing rectagle
 
-    CANVAS_HITTEST CanvasHitTest(POINT pt);
+    HITTEST CanvasHitTest(POINT pt);
     RECT GetBaseRect();
     VOID DoDraw(HDC hDC, RECT& rcClient, RECT& rcPaint);
     VOID OnHVScroll(WPARAM wParam, INT fnBar);
     VOID drawZoomFrame(INT mouseX, INT mouseY);
 
-    CANVAS_HITTEST SelectionHitTest(POINT ptZoomed);
-    VOID StartSelectionDrag(CANVAS_HITTEST hit, POINT ptUnZoomed);
-    VOID SelectionDragging(POINT ptUnZoomed);
-    VOID EndSelectionDrag(POINT ptUnZoomed);
+    HITTEST SelectionHitTest(POINT ptImage);
+    VOID StartSelectionDrag(HITTEST hit, POINT ptImage);
+    VOID SelectionDragging(POINT ptImage);
+    VOID EndSelectionDrag(POINT ptImage);
 
     LRESULT OnSize(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
     LRESULT OnHScroll(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
@@ -83,6 +87,7 @@ protected:
     LRESULT OnCancelMode(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
     LRESULT OnCaptureChanged(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
     LRESULT OnCtlColorEdit(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+    LRESULT OnPaletteModelColorChanged(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
     LRESULT OnLRButtonDown(BOOL bLeftButton, UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
     LRESULT OnLRButtonDblClk(BOOL bLeftButton, UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);

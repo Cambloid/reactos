@@ -201,7 +201,7 @@ BEGIN
     LTEXT "快捷键(&K)：", IDC_SHORTCUT_KEY, 8, 117, 68, 10
     CONTROL "", IDC_SHORTCUT_KEY_HOTKEY, "msctls_hotkey32", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP, 79, 115, 150, 14
     LTEXT "运行(&R)：", IDC_SHORTCUT_RUN, 8, 136, 68, 10
-    COMBOBOX IDC_SHORTCUT_RUN_COMBO, 79, 134, 150, 14, CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX IDC_SHORTCUT_RUN_COMBO, 79, 134, 150, 54, CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP
     LTEXT "备注(&O)：", IDC_SHORTCUT_COMMENT, 8, 154, 68, 10
     EDITTEXT IDC_SHORTCUT_COMMENT_EDIT, 79, 152, 150, 14, ES_AUTOHSCROLL
     PUSHBUTTON "查找目标(&F)...", IDC_SHORTCUT_FIND, 9, 172, 70, 14, ES_LEFT
@@ -246,10 +246,10 @@ BEGIN
     EDITTEXT 14015, 58, 128, 170, 10, ES_LEFT | ES_READONLY | NOT WS_BORDER | NOT WS_TABSTOP | ES_AUTOHSCROLL
     LTEXT "", -1, 8, 144, 221, 1, SS_ETCHEDHORZ | WS_CHILD | WS_VISIBLE
     LTEXT "属性：", 14020, 8, 152, 46, 10
-    AUTOCHECKBOX "只读(&R)", 14021, 58, 151, 70, 10
-    AUTOCHECKBOX "隐藏(&H)", 14022, 126, 151, 70, 10
-    AUTOCHECKBOX "存档(&A)", 14023, 181, 151, 70, 10
-    PUSHBUTTON "高级(&D)...", 14028, 158, 150, 70, 14, WS_CHILD | WS_VISIBLE | WS_TABSTOP
+    AUTOCHECKBOX "只读(&R)", 14021, 58, 151, 68, 10
+    AUTOCHECKBOX "隐藏(&H)", 14022, 126, 151, 55, 10
+    AUTOCHECKBOX "存档(&A)", 14023, 181, 151, 59, 10
+    PUSHBUTTON "高级(&D)...", 14028, 158, 170, 70, 14, WS_CHILD | WS_VISIBLE | WS_TABSTOP
 END
 
 IDD_FILE_PROPERTIES DIALOGEX 0, 0, 240, 205
@@ -497,9 +497,9 @@ CAPTION "注销 ReactOS"
 FONT 9, "宋体"
 BEGIN
     ICON IDI_SHELL_LOGOFF, IDC_STATIC, 8, 6, 21, 20
-    LTEXT "您确定要注销 ReactOS 吗？", -1, 35, 16, 146, 8
-    DEFPUSHBUTTON "注销(&L)", IDOK, 41, 39, 50, 14
-    PUSHBUTTON "取消", IDCANCEL, 95, 39, 50, 14
+    LTEXT "您确定要注销 ReactOS 吗？", -1, 49, 15, 132, 8
+    DEFPUSHBUTTON "注销(&L)", IDOK, 49, 38, 43, 14
+    PUSHBUTTON "取消", IDCANCEL, 99, 38, 43, 14
 END
 
 IDD_LOG_OFF_FANCY DIALOGEX 0, 0, 208, 122
@@ -861,6 +861,11 @@ BEGIN
     IDS_RUNDLG_BROWSE_CAPTION "浏览"
     IDS_RUNDLG_BROWSE_FILTER "可执行文件 (*.exe)\0*.exe\0所有文件 (*.*)\0*.*\0"
 
+    /* Shortcut property sheet */
+    IDS_SHORTCUT_RUN_NORMAL "Normal window"
+    IDS_SHORTCUT_RUN_MIN "Minimized"
+    IDS_SHORTCUT_RUN_MAX "Maximized"
+
     /* Shell folder path default values. See also: dll/win32/userenv/lang */
     /* ATTENTION: If there is no special situation, please DO NOT change
     English folder names into Chinese, or it may cause problems in the system. */
@@ -894,6 +899,7 @@ BEGIN
     IDS_NETWORKPLACE "网上邻居"
 
     IDS_NEWFOLDER "新建文件夹"
+    IDS_NEWITEMFORMAT "New %s"
 
     IDS_DRIVE_FIXED "本地磁盘"
     IDS_DRIVE_CDROM "光盘驱动器"
@@ -910,7 +916,7 @@ BEGIN
 
     IDS_SHELL_ABOUT_AUTHORS "作者(&A)"
     IDS_SHELL_ABOUT_BACK "< 返回(&B)"
-    FCIDM_SHVIEW_NEW "新建"
+    FCIDM_SHVIEW_NEW "新建(&W)" /* A menu item with an ampersand */
     FCIDM_SHVIEW_NEWFOLDER "文件夹(&F)"
     FCIDM_SHVIEW_NEWLINK "快捷方式(&L)"
     IDS_FOLDER_OPTIONS "文件夹选项"

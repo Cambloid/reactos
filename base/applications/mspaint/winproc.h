@@ -1,10 +1,9 @@
 /*
- * PROJECT:     PAINT for ReactOS
- * LICENSE:     LGPL
- * FILE:        base/applications/mspaint/winproc.h
- * PURPOSE:     Window procedure of the main window and all children apart from
- *              hPalWin, hToolSettings and hSelection
- * PROGRAMMERS: Benedikt Freisen
+ * PROJECT:    PAINT for ReactOS
+ * LICENSE:    LGPL-2.0-or-later (https://spdx.org/licenses/LGPL-2.0-or-later)
+ * PURPOSE:    Window procedure of the main window and all children apart from
+ *             hPalWin, hToolSettings and hSelection
+ * COPYRIGHT:  Copyright 2015 Benedikt Freisen <b.freisen@gmx.net>
  */
 
 #pragma once
@@ -34,6 +33,10 @@ public:
     BOOL GetOpenFileName(IN OUT LPTSTR pszFile, INT cchMaxFile);
     BOOL GetSaveFileName(IN OUT LPTSTR pszFile, INT cchMaxFile);
     BOOL ChooseColor(IN OUT COLORREF *prgbColor);
+    VOID TrackPopupMenu(POINT ptScreen, INT iSubMenu);
+    BOOL CanUndo() const;
+    BOOL CanRedo() const;
+    BOOL CanPaste() const;
 
 private:
     HMENU m_hMenu;

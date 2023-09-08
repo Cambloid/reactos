@@ -1,9 +1,8 @@
 /*
- * PROJECT:     PAINT for ReactOS
- * LICENSE:     LGPL
- * FILE:        base/applications/mspaint/toolsmodel.cpp
- * PURPOSE:     Keep track of tool parameters, notify listeners
- * PROGRAMMERS: Benedikt Freisen
+ * PROJECT:    PAINT for ReactOS
+ * LICENSE:    LGPL-2.0-or-later (https://spdx.org/licenses/LGPL-2.0-or-later)
+ * PURPOSE:    Keep track of tool parameters, notify listeners
+ * COPYRIGHT:  Copyright 2015 Benedikt Freisen <b.freisen@gmx.net>
  */
 
 #include "precomp.h"
@@ -28,7 +27,7 @@ ToolsModel::ToolsModel()
 
 ToolsModel::~ToolsModel()
 {
-    for (size_t i = 0; i < TOOL_MAX + 1; ++i)
+    for (size_t i = 0; i < _countof(m_tools); ++i)
         delete m_tools[i];
 }
 
@@ -38,6 +37,11 @@ ToolBase *ToolsModel::GetOrCreateTool(TOOLTYPE nTool)
         m_tools[nTool] = ToolBase::createToolObject(nTool);
 
     return m_tools[nTool];
+}
+
+BOOL ToolsModel::IsSelection() const
+{
+    return (GetActiveTool() == TOOL_RECTSEL || GetActiveTool() == TOOL_FREESEL);
 }
 
 int ToolsModel::GetLineWidth() const
@@ -86,9 +90,6 @@ TOOLTYPE ToolsModel::GetOldActiveTool() const
 void ToolsModel::SetActiveTool(TOOLTYPE nActiveTool)
 {
     OnFinishDraw();
-
-    if (m_activeTool == nActiveTool)
-        return;
 
     switch (m_activeTool)
     {
@@ -141,8 +142,7 @@ void ToolsModel::SetBackgroundTransparent(BOOL bTransparent)
 {
     m_transpBg = bTransparent;
     NotifyToolSettingsChanged();
-    if (canvasWindow.IsWindow())
-        canvasWindow.Invalidate(FALSE);
+    imageModel.NotifyImageChanged();
 }
 
 int ToolsModel::GetZoom() const
@@ -224,6 +224,16 @@ void ToolsModel::OnFinishDraw()
     m_pToolObject->beginEvent();
     m_pToolObject->OnFinishDraw();
     m_pToolObject->endEvent();
+}
+
+void ToolsModel::OnDrawOverlayOnImage(HDC hdc)
+{
+    m_pToolObject->OnDrawOverlayOnImage(hdc);
+}
+
+void ToolsModel::OnDrawOverlayOnCanvas(HDC hdc)
+{
+    m_pToolObject->OnDrawOverlayOnCanvas(hdc);
 }
 
 void ToolsModel::resetTool()

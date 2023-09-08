@@ -1,9 +1,8 @@
 /*
- * PROJECT:     PAINT for ReactOS
- * LICENSE:     LGPL
- * FILE:        base/applications/mspaint/resource.h
- * PURPOSE:     Defines the resource IDs
- * PROGRAMMERS: Benedikt Freisen
+ * PROJECT:    PAINT for ReactOS
+ * LICENSE:    LGPL-2.0-or-later (https://spdx.org/licenses/LGPL-2.0-or-later)
+ * PURPOSE:    Defines the resource IDs
+ * COPYRIGHT:  Copyright 2009 Benedikt Freisen <b.freisen@gmx.net>
  */
 
 #pragma once
@@ -30,6 +29,7 @@
 #define IDI_VERTSKEW    538
 
 #define ID_MENU 501
+#define ID_POPUPMENU 502
 
 #define IDM_FILENEW    201
 #define IDM_FILEOPEN   202
@@ -206,7 +206,6 @@
 #define IDS_ALLFILES        926
 #define IDS_ALLPICTUREFILES 927
 #define IDS_FILESIZE        928
-#define IDS_PRINTRES        929
 
 #define IDS_INTNUMBERS 930
 #define IDS_PERCENTAGE 931
@@ -219,3 +218,8 @@
 #define IDS_ITALIC      936
 #define IDS_UNDERLINE   937
 #define IDS_VERTICAL    938
+#define IDS_PRINTRES    939
+#define IDS_CANTPASTE   940
+#define IDS_SAVEERROR   941
+#define IDS_CANTSENDMAIL 942
+#define IDS_LOSECOLOR   943

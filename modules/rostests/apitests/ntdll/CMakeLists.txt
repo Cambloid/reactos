@@ -10,6 +10,8 @@ list(APPEND SOURCE
     load_notifications.c
     locale.c
     NtAcceptConnectPort.c
+    NtAccessCheckByType.c
+    NtAccessCheckByTypeResultList.c
     NtAdjustGroupsToken.c
     NtAdjustPrivilegesToken.c
     NtAllocateVirtualMemory.c
@@ -57,6 +59,7 @@ list(APPEND SOURCE
     RtlBitmap.c
     RtlComputePrivatizedDllName_U.c
     RtlCopyMappedMemory.c
+    RtlCriticalSection.c
     RtlDebugInformation.c
     RtlDeleteAce.c
     RtlDetermineDosPathNameType.c

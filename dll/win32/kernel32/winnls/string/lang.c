@@ -32,6 +32,12 @@ DEBUG_CHANNEL(nls);
     #include "japanese.h"
 #endif
 
+#undef WINVER
+#define WINVER DLL_EXPORT_VERSION
+
+/* From winnls.h */
+#define LOCALE_NAME_USER_DEFAULT    NULL
+
 #define REG_SZ 1
 extern int wine_fold_string(int flags, const WCHAR *src, int srclen, WCHAR *dst, int dstlen);
 extern int wine_get_sortkey(int flags, const WCHAR *src, int srclen, char *dst, int dstlen);
@@ -2127,6 +2133,73 @@ static int map_to_uppercase(DWORD flags, const WCHAR *src, int srclen, WCHAR *ds
     return pos;
 }
 
+typedef struct tagWCHAR_PAIR
+{
+    WCHAR from, to;
+} WCHAR_PAIR, *PWCHAR_PAIR;
+
+/* The table to convert Simplified Chinese to Traditional Chinese */
+static const WCHAR_PAIR s_sim2tra[] =
+{
+#define DEFINE_SIM2TRA(from, to) { from, to },
+#include "sim2tra.h"
+#undef DEFINE_SIM2TRA
+};
+
+/* The table to convert Traditional Chinese to Simplified Chinese */
+static const WCHAR_PAIR s_tra2sim[] =
+{
+#define DEFINE_TRA2SIM(from, to) { from, to },
+#include "tra2sim.h"
+#undef DEFINE_TRA2SIM
+};
+
+/* The comparison function to do bsearch */
+static int compare_wchar_pair(const void *x, const void *y)
+{
+    const WCHAR_PAIR *a = x;
+    const WCHAR_PAIR *b = y;
+    if (a->from < b->from)
+        return -1;
+    if (a->from > b->from)
+        return +1;
+    return 0;
+}
+
+static WCHAR find_wchar_pair(const WCHAR_PAIR *pairs, size_t count, WCHAR ch)
+{
+    PWCHAR_PAIR found = bsearch(&ch, pairs, count, sizeof(WCHAR_PAIR), compare_wchar_pair);
+    if (found)
+        return found->to;
+    return ch;
+}
+
+static int map_to_simplified_chinese(DWORD flags, const WCHAR *src, int srclen, WCHAR *dst, int dstlen)
+{
+    int pos;
+    for (pos = 0; srclen; src++, srclen--)
+    {
+        WCHAR wch = *src;
+        if (pos < dstlen)
+            dst[pos] = find_wchar_pair(s_tra2sim, ARRAY_SIZE(s_tra2sim), wch);
+        pos++;
+    }
+    return pos;
+}
+
+static int map_to_traditional_chinese(DWORD flags, const WCHAR *src, int srclen, WCHAR *dst, int dstlen)
+{
+    int pos;
+    for (pos = 0; srclen; src++, srclen--)
+    {
+        WCHAR wch = *src;
+        if (pos < dstlen)
+            dst[pos] = find_wchar_pair(s_sim2tra, ARRAY_SIZE(s_sim2tra), wch);
+        pos++;
+    }
+    return pos;
+}
+
 static int map_remove_ignored(DWORD flags, const WCHAR *src, int srclen, WCHAR *dst, int dstlen)
 {
     int pos;
@@ -2195,10 +2268,10 @@ static int lcmap_string(DWORD flags, const WCHAR *src, int srclen, WCHAR *dst, i
             map_to_katakana(dst, ret, dst, dstlen);
         break;
     case LCMAP_SIMPLIFIED_CHINESE:
-        FIXME("LCMAP_SIMPLIFIED_CHINESE\n");
+        ret = map_to_simplified_chinese(flags, src, srclen, dst, dstlen);
         break;
     case LCMAP_TRADITIONAL_CHINESE:
-        FIXME("LCMAP_TRADITIONAL_CHINESE\n");
+        ret = map_to_traditional_chinese(flags, src, srclen, dst, dstlen);
         break;
     case NORM_IGNORENONSPACE:
     case NORM_IGNORESYMBOLS:
@@ -2691,6 +2764,29 @@ INT WINAPI CompareStringA(LCID lcid, DWORD flags,
     if (str2W != buf2W) HeapFree(GetProcessHeap(), 0, str2W);
     return ret;
 }
+
+#if (WINVER >= 0x0600)
+/******************************************************************************
+ *           CompareStringOrdinal    (KERNEL32.@)
+ */
+INT WINAPI CompareStringOrdinal(const WCHAR *str1, INT len1, const WCHAR *str2, INT len2, BOOL ignore_case)
+{
+    int ret;
+
+    if (!str1 || !str2)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+    if (len1 < 0) len1 = strlenW(str1);
+    if (len2 < 0) len2 = strlenW(str2);
+
+    ret = RtlCompareUnicodeStrings( str1, len1, str2, len2, ignore_case );
+    if (ret < 0) return CSTR_LESS_THAN;
+    if (ret > 0) return CSTR_GREATER_THAN;
+    return CSTR_EQUAL;
+}
+#endif
 
 #ifdef __REACTOS__
 HANDLE NLS_RegOpenKey(HANDLE hRootKey, LPCWSTR szKeyName)

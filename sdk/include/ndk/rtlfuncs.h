@@ -2123,6 +2123,18 @@ RtlCompareUnicodeString(
     BOOLEAN CaseInsensitive
 );
 
+_Must_inspect_result_
+NTSYSAPI
+LONG
+NTAPI
+RtlCompareUnicodeStrings(
+    _In_reads_(String1Length) PCWCH String1,
+    _In_ SIZE_T String1Length,
+    _In_reads_(String2Length) PCWCH String2,
+    _In_ SIZE_T String2Length,
+    _In_ BOOLEAN CaseInSensitive
+);
+
 NTSYSAPI
 VOID
 NTAPI
@@ -4948,6 +4960,43 @@ RtlGetNativeSystemInformation(
     _In_ ULONG SystemInformationLength,
     _Out_opt_ PULONG ReturnLength
 );
+
+#if (_WIN32_WINNT >= _WIN32_WINNT_VISTA) || (DLL_EXPORT_VERSION >= _WIN32_WINNT_VISTA)
+
+NTSYSAPI
+VOID
+NTAPI
+RtlRunOnceInitialize(
+    _Out_ PRTL_RUN_ONCE RunOnce);
+
+_Maybe_raises_SEH_exception_
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlRunOnceExecuteOnce(
+    _Inout_ PRTL_RUN_ONCE RunOnce,
+    _In_ __inner_callback PRTL_RUN_ONCE_INIT_FN InitFn,
+    _Inout_opt_ PVOID Parameter,
+    _Outptr_opt_result_maybenull_ PVOID *Context);
+
+_Must_inspect_result_
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlRunOnceBeginInitialize(
+    _Inout_ PRTL_RUN_ONCE RunOnce,
+    _In_ ULONG Flags,
+    _Outptr_opt_result_maybenull_ PVOID *Context);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlRunOnceComplete(
+    _Inout_ PRTL_RUN_ONCE RunOnce,
+    _In_ ULONG Flags,
+    _In_opt_ PVOID Context);
+
+#endif
 
 #if (_WIN32_WINNT >= _WIN32_WINNT_VISTA) || (defined(__REACTOS__) && defined(_NTDLLBUILD_))
 /* Put NTSYSAPI back when this will be really exported. Only statically linked for now */

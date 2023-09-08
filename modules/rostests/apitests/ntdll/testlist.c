@@ -6,6 +6,8 @@
 extern void func_LdrEnumResources(void);
 extern void func_load_notifications(void);
 extern void func_NtAcceptConnectPort(void);
+extern void func_NtAccessCheckByType(void);
+extern void func_NtAccessCheckByTypeResultList(void);
 extern void func_NtAdjustGroupsToken(void);
 extern void func_NtAdjustPrivilegesToken(void);
 extern void func_NtAllocateVirtualMemory(void);
@@ -53,6 +55,7 @@ extern void func_RtlAllocateHeap(void);
 extern void func_RtlBitmap(void);
 extern void func_RtlComputePrivatizedDllName_U(void);
 extern void func_RtlCopyMappedMemory(void);
+extern void func_RtlCriticalSection(void);
 extern void func_RtlDebugInformation(void);
 extern void func_RtlDeleteAce(void);
 extern void func_RtlDetermineDosPathNameType(void);
@@ -99,6 +102,8 @@ const struct test winetest_testlist[] =
     { "LdrEnumResources",               func_LdrEnumResources },
     { "load_notifications",             func_load_notifications },
     { "NtAcceptConnectPort",            func_NtAcceptConnectPort },
+    { "NtAccessCheckByType",            func_NtAccessCheckByType },
+    { "NtAccessCheckByTypeResultList",  func_NtAccessCheckByTypeResultList },
     { "NtAdjustGroupsToken",            func_NtAdjustGroupsToken },
     { "NtAdjustPrivilegesToken",        func_NtAdjustPrivilegesToken },
     { "NtAllocateVirtualMemory",        func_NtAllocateVirtualMemory },
@@ -146,6 +151,7 @@ const struct test winetest_testlist[] =
     { "RtlBitmapApi",                   func_RtlBitmap },
     { "RtlComputePrivatizedDllName_U",  func_RtlComputePrivatizedDllName_U },
     { "RtlCopyMappedMemory",            func_RtlCopyMappedMemory },
+    { "RtlCriticalSection",             func_RtlCriticalSection },
     { "RtlDebugInformation",            func_RtlDebugInformation },
     { "RtlDeleteAce",                   func_RtlDeleteAce },
     { "RtlDetermineDosPathNameType",    func_RtlDetermineDosPathNameType },

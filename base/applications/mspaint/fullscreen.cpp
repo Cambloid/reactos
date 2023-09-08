@@ -1,9 +1,8 @@
 /*
- * PROJECT:     PAINT for ReactOS
- * LICENSE:     LGPL
- * FILE:        base/applications/mspaint/fullscreen.cpp
- * PURPOSE:     Window for fullscreen view
- * PROGRAMMERS: Benedikt Freisen
+ * PROJECT:    PAINT for ReactOS
+ * LICENSE:    LGPL-2.0-or-later (https://spdx.org/licenses/LGPL-2.0-or-later)
+ * PURPOSE:    Window for fullscreen view
+ * COPYRIGHT:  Copyright 2015 Benedikt Freisen <b.freisen@gmx.net>
  */
 
 #include "precomp.h"
@@ -23,8 +22,8 @@ HWND CFullscreenWindow::DoCreate()
 
 LRESULT CFullscreenWindow::OnCreate(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-    SendMessage(WM_SETICON, ICON_BIG, (LPARAM) LoadIcon(hProgInstance, MAKEINTRESOURCE(IDI_APPICON)));
-    SendMessage(WM_SETICON, ICON_SMALL, (LPARAM) LoadIcon(hProgInstance, MAKEINTRESOURCE(IDI_APPICON)));
+    SendMessage(WM_SETICON, ICON_BIG, (LPARAM) LoadIcon(g_hinstExe, MAKEINTRESOURCE(IDI_APPICON)));
+    SendMessage(WM_SETICON, ICON_SMALL, (LPARAM) LoadIcon(g_hinstExe, MAKEINTRESOURCE(IDI_APPICON)));
     return 0;
 }
 
@@ -47,12 +46,6 @@ LRESULT CFullscreenWindow::OnPaint(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL
     INT yDest = (rcWnd.bottom - rcWnd.top - cyDest) / 2;
     BitBlt(hDC, xDest, yDest, cxDest, cyDest, imageModel.GetDC(), 0, 0, SRCCOPY);
     EndPaint(&ps);
-    return 0;
-}
-
-LRESULT CFullscreenWindow::OnSize(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
-{
-    Invalidate(TRUE);
     return 0;
 }
 

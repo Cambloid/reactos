@@ -1,9 +1,8 @@
 /*
- * PROJECT:     PAINT for ReactOS
- * LICENSE:     LGPL
- * FILE:        base/applications/mspaint/drawing.cpp
- * PURPOSE:     The drawing functions used by the tools
- * PROGRAMMERS: Benedikt Freisen
+ * PROJECT:    PAINT for ReactOS
+ * LICENSE:    LGPL-2.0-or-later (https://spdx.org/licenses/LGPL-2.0-or-later)
+ * PURPOSE:    The drawing functions used by the tools
+ * COPYRIGHT:  Copyright 2015 Benedikt Freisen <b.freisen@gmx.net>
  */
 
 /* INCLUDES *********************************************************/
@@ -116,46 +115,52 @@ Fill(HDC hdc, LONG x, LONG y, COLORREF color)
 void
 Erase(HDC hdc, LONG x1, LONG y1, LONG x2, LONG y2, COLORREF color, LONG radius)
 {
-    LONG a, b;
-    HPEN oldPen;
-    HBRUSH oldBrush = (HBRUSH) SelectObject(hdc, CreateSolidBrush(color));
+    LONG b = max(1, max(abs(x2 - x1), abs(y2 - y1)));
+    HBRUSH hbr = ::CreateSolidBrush(color);
 
-    b = max(1, max(abs(x2 - x1), abs(y2 - y1)));
-    oldPen = (HPEN) SelectObject(hdc, CreatePen(PS_SOLID, 1, color));
-    for(a = 0; a <= b; a++)
-        Rectangle(hdc,
-                  (x1 * (b - a) + x2 * a) / b - radius,
-                  (y1 * (b - a) + y2 * a) / b - radius,
-                  (x1 * (b - a) + x2 * a) / b + radius,
-                  (y1 * (b - a) + y2 * a) / b + radius);
-    DeleteObject(SelectObject(hdc, oldBrush));
-    DeleteObject(SelectObject(hdc, oldPen));
+    for (LONG a = 0; a <= b; a++)
+    {
+        LONG cx = (x1 * (b - a) + x2 * a) / b;
+        LONG cy = (y1 * (b - a) + y2 * a) / b;
+        RECT rc = { cx - radius, cy - radius, cx + radius, cy + radius };
+        ::FillRect(hdc, &rc, hbr);
+    }
+
+    ::DeleteObject(hbr);
 }
 
 void
 Replace(HDC hdc, LONG x1, LONG y1, LONG x2, LONG y2, COLORREF fg, COLORREF bg, LONG radius)
 {
-    LONG a, b, x, y;
-    b = max(1, max(abs(x2 - x1), abs(y2 - y1)));
+    LONG b = max(1, max(abs(x2 - x1), abs(y2 - y1)));
 
-    for(a = 0; a <= b; a++)
-        for(y = (y1 * (b - a) + y2 * a) / b - radius + 1;
-            y < (y1 * (b - a) + y2 * a) / b + radius + 1; y++)
-            for(x = (x1 * (b - a) + x2 * a) / b - radius + 1;
-                x < (x1 * (b - a) + x2 * a) / b + radius + 1; x++)
-                if (GetPixel(hdc, x, y) == fg)
-                    SetPixel(hdc, x, y, bg);
+    for (LONG a = 0; a <= b; a++)
+    {
+        LONG cx = (x1 * (b - a) + x2 * a) / b;
+        LONG cy = (y1 * (b - a) + y2 * a) / b;
+        RECT rc = { cx - radius, cy - radius, cx + radius, cy + radius };
+        for (LONG y = rc.top; y < rc.bottom; ++y)
+        {
+            for (LONG x = rc.left; x < rc.right; ++x)
+            {
+                if (::GetPixel(hdc, x, y) == fg)
+                    ::SetPixelV(hdc, x, y, bg);
+            }
+        }
+    }
 }
 
 void
 Airbrush(HDC hdc, LONG x, LONG y, COLORREF color, LONG r)
 {
-    LONG a, b;
-
-    for(b = -r; b <= r; b++)
-        for(a = -r; a <= r; a++)
-            if ((a * a + b * b <= r * r) && (rand() % 4 == 0))
-                SetPixel(hdc, x + a, y + b, color);
+    for (LONG dy = -r; dy <= r; dy++)
+    {
+        for (LONG dx = -r; dx <= r; dx++)
+        {
+            if ((dx * dx + dy * dy <= r * r) && (rand() % r == 0))
+                ::SetPixelV(hdc, x + dx, y + dy, color);
+        }
+    }
 }
 
 void
@@ -183,7 +188,7 @@ Brush(HDC hdc, LONG x1, LONG y1, LONG x2, LONG y2, COLORREF color, LONG style)
         case 2:
             MoveToEx(hdc, x1, y1, NULL);
             LineTo(hdc, x2, y2);
-            SetPixel(hdc, x2, y2, color);
+            ::SetPixelV(hdc, x2, y2, color);
             break;
         case 3:
             for(a = 0; a <= b; a++)

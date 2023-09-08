@@ -25,13 +25,6 @@ StallExecutionProcessor(ULONG Microseconds)
 }
 
 VOID
-NTAPI
-KeStallExecutionProcessor(ULONG Microseconds)
-{
-    StallExecutionProcessor(Microseconds);
-}
-
-VOID
 UefiVideoGetFontsFromFirmware(PULONG RomFontPointers)
 {
 
@@ -60,18 +53,6 @@ VOID
 UefiPcBeep(VOID)
 {
     /* Not possible on UEFI, for now */
-}
-
-BOOLEAN
-UefiConsKbHit(VOID)
-{
-    return FALSE;
-}
-
-int
-UefiConsGetCh(void)
-{
-    return 0;
 }
 
 VOID

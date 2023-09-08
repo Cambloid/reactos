@@ -1,10 +1,9 @@
 /*
- * PROJECT:     PAINT for ReactOS
- * LICENSE:     LGPL
- * FILE:        base/applications/mspaint/toolbox.h
- * PURPOSE:     Window procedure of the main window and all children apart from
- *              hPalWin, hToolSettings and hSelection
- * PROGRAMMERS: Benedikt Freisen
+ * PROJECT:    PAINT for ReactOS
+ * LICENSE:    LGPL-2.0-or-later (https://spdx.org/licenses/LGPL-2.0-or-later)
+ * PURPOSE:    Window procedure of the main window and all children apart from
+ *             hPalWin, hToolSettings and hSelection
+ * COPYRIGHT:  Copyright 2015 Benedikt Freisen <b.freisen@gmx.net>
  */
 
 #pragma once
@@ -15,10 +14,13 @@
 #define CX_TOOLBAR          (TOOLBAR_COLUMNS * CXY_TB_BUTTON)
 #define CY_TOOLBAR          (TOOLBAR_ROWS * CXY_TB_BUTTON)
 
+#define WM_TOOLBARHIT   (WM_APP + 1)
+
 class CPaintToolBar : public CWindow
 {
 public:
     BOOL DoCreate(HWND hwndParent);
+    static LRESULT CALLBACK ToolBarWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
 class CToolBox : public CWindowImpl<CToolBox>
@@ -34,6 +36,7 @@ public:
         MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
         MESSAGE_HANDLER(WM_LBUTTONUP, OnLButtonUp)
         MESSAGE_HANDLER(WM_TOOLSMODELTOOLCHANGED, OnToolsModelToolChanged)
+        MESSAGE_HANDLER(WM_TOOLBARHIT, OnToolBarHit)
     END_MSG_MAP()
 
     BOOL DoCreate(HWND hwndParent);
@@ -48,4 +51,5 @@ private:
     LRESULT OnMouseMove(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
     LRESULT OnLButtonUp(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
     LRESULT OnToolsModelToolChanged(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+    LRESULT OnToolBarHit(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 };
